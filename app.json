@@ -1,0 +1,36 @@
+{
+  "scheme": "acme",
+  "userInterfaceStyle": "automatic",
+  "orientation": "default",
+  "web": {
+    "output": "static"
+  },
+  "plugins": [
+    "expo-dev-client",
+    [
+      "expo-router",
+      {
+        "origin": "https://n"
+      }
+    ]
+  ],
+  "name": "Wardrobe",
+  "slug": "Wardrobe",
+  "android": {
+    "package": "com.driverchat.Wardrobe"
+  },
+  "ios": {
+    "bundleIdentifier": "com.driverchat.Wardrobe",
+    "infoPlist": {
+      "ITSAppUsesNonExemptEncryption": false
+    }
+  },
+  "extra": {
+    "router": {
+      "origin": "https://n"
+    },
+    "eas": {
+      "projectId": "3b5fa52d-a9fa-470e-9bdd-629eec8c89a6"
+    }
+  }
+}

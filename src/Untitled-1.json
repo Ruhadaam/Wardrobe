@@ -1,0 +1,31 @@
+{
+  "item_id": "unique_id_123",
+  "image_url": "https://storage.bucket.../img.jpg",
+  
+  // 1. TEMEL KATEGORİLER (Vision API "Labels" kısmından çekilecek)
+  "classification": {
+    "main_category": 
+    "sub_category":
+        "detail_type": 
+  },
+
+  // 2. RENK BİLGİSİ (Vision API "Image Properties" kısmından)
+  "color_analysis": {
+    "dominant_color_name": 
+    "dominant_hex":        
+    "accent_hex":       
+  },
+
+  // 3. MATERYAL VE DESEN (Vision API "Labels" kısmından)
+  "attributes": {
+    "material":
+    "pattern":
+    "fit":
+  },
+
+  // 4. HAM ETİKETLER (LLM için ipucu hazinesi)
+
+  "raw_tags": [
+    
+  ]
+}

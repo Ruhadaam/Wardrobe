@@ -6,19 +6,44 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Platform } from "react-native";
 import Toast from "react-native-toast-message";
 
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_900Black,
+} from "@expo-google-fonts/inter";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
+
+SplashScreen.preventAutoHideAsync();
+
 export default function Layout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_900Black,
+  });
+
+  useEffect(() => {
+    if (Platform.OS !== 'android' || fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (Platform.OS === 'android' && !fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
-          <StatusBar 
-            style={Platform.OS === "ios" ? "dark" : "auto"} 
-            backgroundColor={Platform.OS === "android" ? "#FFFFFF" : undefined}
-            translucent={Platform.OS === "android"}
-          />
-          <Slot />
-          <Toast />
-        </SafeAreaView>
+        <StatusBar style="light" />
+        <Slot />
+        <Toast />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

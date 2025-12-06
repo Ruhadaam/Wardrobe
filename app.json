@@ -12,7 +12,8 @@
       {
         "origin": "https://n"
       }
-    ]
+    ],
+    "expo-sqlite"
   ],
   "name": "Wardrobe",
   "slug": "Wardrobe",

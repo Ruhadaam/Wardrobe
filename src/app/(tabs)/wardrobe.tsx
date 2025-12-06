@@ -6,6 +6,7 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -56,33 +57,89 @@ export default function WardrobePage() {
   }, [items]);
 
   const loadItems = async () => {
+    if (!user) return;
+    setIsLoading(true);
+
     try {
-      if (!user) return;
-      setIsLoading(true);
-      const data = await wardrobeService.fetchItems(user.id);
+      // 1. Initialize DB (safe to call multiple times)
+      await wardrobeService.initialize();
 
-      // Map DB rows back to WardrobeItem shape for UI compatibility
-      const mappedItems: WardrobeItem[] = data.map((row: any) => {
-        // Use the saved JSON but ensure ID and Image URL are from DB
-        const analysis = row.analysis_json.analysis || row.analysis_json; // Handle potential wrapping
-        return {
-          ...row.analysis_json,
-          item_id: row.id,
-          image_url: row.image_url,
-          analysis: analysis
-        };
-      });
+      // 2. Load Local Items (Fast)
+      const localData = await wardrobeService.getLocalItems(user.id);
+      if (localData && localData.length > 0) {
+        setItems(mapItems(localData));
+      }
 
-      setItems(mappedItems);
+      // 3. Fetch Remote & Sync (Background update if local existed, else primary loading)
+      const remoteData = await wardrobeService.fetchItems(user.id);
+      setItems(mapItems(remoteData));
+
     } catch (error) {
+      console.error('Failed to load items:', error);
       Toast.show({
         type: 'error',
         text1: 'Error loading wardrobe',
-        text2: 'Could not fetch your items.',
+        text2: 'Could not sync with cloud.',
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const mapItems = (data: any[]): WardrobeItem[] => {
+    return data.map((row: any) => {
+      const analysis = row.analysis_json.analysis || row.analysis_json;
+      return {
+        ...row.analysis_json,
+        item_id: row.id,
+        image_url: row.image_url,
+        analysis: analysis
+      };
+    });
+  };
+
+  const handleDeleteItem = (itemId: string) => {
+    Alert.alert(
+      "Delete Item",
+      "Are you sure you want to delete this item? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // Optimistic UI update
+              const previousItems = [...items];
+              setItems(current => current.filter(i => i.item_id !== itemId));
+
+              // Perform delete
+              await wardrobeService.deleteItem(itemId);
+
+              Toast.show({
+                type: 'success',
+                text1: 'Item deleted',
+                position: 'top'
+              });
+            } catch (error) {
+              console.error("Error deleting item:", error);
+              // Revert UI if failed (optional, but good practice. For now simpler reload is fine or just error msg)
+              // In a full robust app we'd revert the state here. 
+              // For now just show error.
+              loadItems(); // Reload to sync state
+              Toast.show({
+                type: 'error',
+                text1: 'Failed to delete item',
+                position: 'top'
+              });
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleAddItem = async () => {
@@ -310,13 +367,23 @@ export default function WardrobePage() {
                           style={{ aspectRatio: 3 / 4 }}
                           resizeMode="cover"
                         />
-                        <View className="absolute top-3 right-3 bg-black/60 rounded-full px-2.5 py-1 backdrop-blur-md border border-white/10">
+                        {/* Moved Color Tag to Top LEFT */}
+                        <View className="absolute top-3 left-3 bg-black/60 rounded-full px-2.5 py-1 backdrop-blur-md border border-white/10">
                           {(item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color) && (
                             <Text className="text-white text-xs font-semibold font-inter-semibold capitalize">
                               {item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color}
                             </Text>
                           )}
                         </View>
+
+                        {/* New Delete Button at Top RIGHT */}
+                        <TouchableOpacity
+                          onPress={() => item.item_id && handleDeleteItem(item.item_id)}
+                          className="absolute top-3 right-3 w-8 h-8 bg-red-500/80 rounded-full items-center justify-center backdrop-blur-md border border-white/20"
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="trash-outline" size={16} color="white" />
+                        </TouchableOpacity>
                       </View>
 
                       <View className="p-4 bg-slate-800">

@@ -1,248 +1,285 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-console.log("Saf Veri Analiz Fonksiyonu Başlatıldı!")
+console.log("Gemini Gardırop Analizörü V7 (Model: Gemini 2.0 Flash Exp) Başlatıldı");
 
-// --- 1. YARDIMCI: RGB'den HEX Koda ---
-function rgbToHex(r: number, g: number, b: number) {
-  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
-}
-
-// --- 2. YARDIMCI: RGB'den Renk İsmine (Basit Algoritma) ---
-function getColorName(r: number, g: number, b: number) {
-  // Temel renk paleti
-  const colors = [
-    { name: "Siyah", r: 0, g: 0, b: 0 },
-    { name: "Beyaz", r: 255, g: 255, b: 255 },
-    { name: "Gri", r: 128, g: 128, b: 128 },
-    { name: "Kırmızı", r: 255, g: 0, b: 0 },
-    { name: "Yeşil", r: 0, g: 255, b: 0 },
-    { name: "Mavi", r: 0, g: 0, b: 255 },
-    { name: "Sarı", r: 255, g: 255, b: 0 },
-    { name: "Turuncu", r: 255, g: 165, b: 0 },
-    { name: "Mor", r: 128, g: 0, b: 128 },
-    { name: "Lacivert", r: 0, g: 0, b: 128 },
-    { name: "Kahverengi", r: 165, g: 42, b: 42 },
-    { name: "Bej", r: 245, g: 245, b: 220 },
-    { name: "Pembe", r: 255, g: 192, b: 203 }
-  ];
-
-  // En yakın rengi bul (Euclidean Distance yöntemi)
-  let closestName = null;
-  let minDistance = Infinity;
-
-  for (const color of colors) {
-    const distance = Math.sqrt(
-      Math.pow(r - color.r, 2) +
-      Math.pow(g - color.g, 2) +
-      Math.pow(b - color.b, 2)
-    );
-    if (distance < minDistance) {
-      minDistance = distance;
-      closestName = color.name;
-    }
-  }
-  return closestName;
-}
-
-// --- 3. YARDIMCI: Etiket İşleme (Null dönecek şekilde) ---
-function processLabels(labels: any[]) {
-  const descriptions = labels.map(l => l.description.toLowerCase());
-  
-  // Başlangıç değerleri NULL (Varsayılan değer yok)
-  let main = null;
-  let sub = null;
-  let detail = null;
-  let material = null;
-  let pattern = null;
-  let fit = null;
-
-  // --- KATEGORİ MANTIĞI ---
-  if (descriptions.some(d => d.includes('top') || d.includes('shirt') || d.includes('blouse') || d.includes('sweater') || d.includes('jacket') || d.includes('hoodie'))) {
-    main = "Üst Giyim";
-    if (descriptions.includes('t-shirt') || descriptions.includes('tee')) sub = "Tişört";
-    else if (descriptions.includes('shirt') || descriptions.includes('button')) sub = "Gömlek";
-    else if (descriptions.includes('sweater') || descriptions.includes('jumper')) sub = "Kazak";
-    else if (descriptions.includes('hoodie')) sub = "Kapüşonlu";
-    else if (descriptions.includes('jacket') || descriptions.includes('coat')) sub = "Ceket/Mont";
-    else if (descriptions.includes('blouse')) sub = "Bluz";
-  } 
-  else if (descriptions.some(d => d.includes('pant') || d.includes('jean') || d.includes('trouser') || d.includes('short') || d.includes('skirt'))) {
-    main = "Alt Giyim";
-    if (descriptions.includes('jeans') || descriptions.includes('denim')) sub = "Kot Pantolon";
-    else if (descriptions.includes('shorts')) sub = "Şort";
-    else if (descriptions.includes('skirt')) sub = "Etek";
-    else sub = "Pantolon";
-  }
-  else if (descriptions.some(d => d.includes('shoe') || d.includes('sneaker') || d.includes('boot') || d.includes('sandal') || d.includes('heel'))) {
-    main = "Ayakkabı";
-    if (descriptions.includes('sneaker')) sub = "Spor Ayakkabı";
-    else if (descriptions.includes('boot')) sub = "Bot";
-    else if (descriptions.includes('sandal')) sub = "Sandalet";
-    else sub = "Ayakkabı";
-  }
-  else if (descriptions.includes('bag') || descriptions.includes('handbag') || descriptions.includes('backpack')) {
-    main = "Aksesuar";
-    sub = "Çanta";
-  }
-
-  // Detay Tespiti
-  if (descriptions.some(d => d.includes('v-neck'))) detail = "V Yaka";
-  else if (descriptions.some(d => d.includes('crew neck') || d.includes('round neck'))) detail = "Bisiklet Yaka";
-  else if (descriptions.some(d => d.includes('polo'))) detail = "Polo Yaka";
-  else if (descriptions.some(d => d.includes('sleeveless'))) detail = "Kolsuz";
-  else if (descriptions.some(d => d.includes('long sleeve'))) detail = "Uzun Kol";
-
-  // --- MATERYAL ---
-  if (descriptions.includes('denim')) material = "Denim";
-  else if (descriptions.includes('leather')) material = "Deri";
-  else if (descriptions.includes('cotton')) material = "Pamuk";
-  else if (descriptions.includes('wool') || descriptions.includes('knitwear')) material = "Yün/Örgü";
-  else if (descriptions.includes('silk')) material = "İpek";
-  else if (descriptions.includes('linen')) material = "Keten";
-  else if (descriptions.includes('polyester')) material = "Polyester";
-
-  // --- DESEN ---
-  if (descriptions.includes('plaid') || descriptions.includes('tartan')) pattern = "Ekose";
-  else if (descriptions.includes('stripe') || descriptions.includes('striped')) pattern = "Çizgili";
-  else if (descriptions.includes('floral') || descriptions.includes('flower')) pattern = "Çiçekli";
-  else if (descriptions.includes('dot') || descriptions.includes('polka')) pattern = "Puantiye";
-  else if (descriptions.includes('camouflage')) pattern = "Kamuflaj";
-  // Vision API genelde "Pattern" kelimesini düz renk olmayan her şey için kullanır, bu yüzden "Solid" yoksa desenli diyemeyiz, null bırakıyoruz.
-
-  // --- FIT (KESİM) ---
-  if (descriptions.includes('slim fit')) fit = "Slim Fit";
-  else if (descriptions.includes('oversized') || descriptions.includes('baggy')) fit = "Oversize";
-  else if (descriptions.includes('skinny')) fit = "Skinny";
-
-  return { 
-    classification: { main, sub, detail }, 
-    attributes: { material, pattern, fit } 
-  };
-}
-
-// --- ANA FONKSİYON ---
+// --- 1. KISITLAMA LİSTELERİ (SENİN BELİRLEDİĞİN YAPIDA) ---
+const VALID_OPTIONS = {
+  category: [
+    "top",
+    "bottom",
+    "outerwear",
+    "shoes",
+    "accessory"
+  ],
+  sub_category: {
+    top: [
+      "tshirt",
+      "longsleeve",
+      "shirt",
+      "polo",
+      "hoodie",
+      "sweatshirt",
+      "knitwear",
+      "tanktop"
+    ],
+    bottom: [
+      "jeans",
+      "trousers",
+      "shorts",
+      "sweatpants",
+      "leggings",
+      "skirt"
+    ],
+    outerwear: [
+      "jacket",
+      "coat",
+      "parka",
+      "blazer",
+      "cardigan",
+      "windbreaker"
+    ],
+    shoes: [
+      "sneakers",
+      "boots",
+      "loafers",
+      "sandals",
+      "heels",
+      "running_shoes"
+    ],
+    accessory: [
+      "cap",
+      "beanie",
+      "scarf",
+      "bag",
+      "watch",
+      "belt",
+      "sunglasses"
+    ]
+  },
+  colors: [
+    "black",
+    "white",
+    "grey",
+    "blue",
+    "navy",
+    "red",
+    "green",
+    "yellow",
+    "brown",
+    "beige",
+    "cream",
+    "pink",
+    "purple",
+    "orange"
+  ],
+  style: [
+    "casual",
+    "streetwear",
+    "sport",
+    "formal",
+    "smart_casual",
+    "minimal"
+  ],
+  season: [
+    "summer",
+    "winter",
+    "spring",
+    "autumn",
+    "all_seasons"
+  ],
+  material: [
+    "cotton",
+    "denim",
+    "wool",
+    "leather",
+    "polyester",
+    "linen",
+    "synthetic",
+    "nylon",
+    "knit"
+  ],
+  fit: [
+    "oversize",
+    "regular",
+    "slim",
+    "wide",
+    "relaxed"
+  ],
+  formality: [
+    "casual",
+    "smart_casual",
+    "formal"
+  ],
+  pattern: [
+    "plain",
+    "striped",
+    "checked",
+    "graphic",
+    "logo",
+    "camouflage"
+  ],
+  features: [
+    "hoodie",
+    "zipper",
+    "buttons",
+    "pockets",
+    "drawstring",
+    "collar",
+    "elastic"
+  ]
+};
 
 serve(async (req) => {
-  // CORS Headerları
+  // CORS Yönetimi
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: { 
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    }})
+    return new Response('ok', {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+      }
+    });
   }
 
   try {
-    const formData = await req.formData()
-    const imageFile = formData.get('file') as File 
+    const geminiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiKey) throw new Error("GEMINI_API_KEY eksik!");
 
-    if (!imageFile) throw new Error('Dosya bulunamadı');
+    // --- Dosya Alma ve Base64 Çevirme ---
+    const formData = await req.formData();
+    const imageFile = formData.get('file');
 
-    // Base64 Hazırlığı
-    const arrayBuffer = await imageFile.arrayBuffer()
-    const uint8Array = new Uint8Array(arrayBuffer)
+    if (!imageFile || !(imageFile instanceof File)) {
+      throw new Error('Dosya yüklenemedi veya geçersiz format.');
+    }
+
+    const arrayBuffer = await imageFile.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
     let binaryString = '';
+
+    // Büyük dosyalar için chunking gerekebilir ama Edge Function limitleri dahilinde bu yöntem çalışır
     for (let i = 0; i < uint8Array.byteLength; i++) {
-        binaryString += String.fromCharCode(uint8Array[i]);
+      binaryString += String.fromCharCode(uint8Array[i]);
     }
     const base64Image = btoa(binaryString);
 
-    // Supabase Upload
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // --- GEMINI API PROMPT HAZIRLIĞI ---
+    const modelVersion = "gemini-2.0-flash";
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelVersion}:generateContent?key=${geminiKey}`;
 
-    const uniqueId = crypto.randomUUID();
-    const fileName = `${uniqueId}_${imageFile.name || 'img.jpg'}`
-    
-    const { data: storageData, error: storageError } = await supabase
-      .storage
-      .from('uploads')
-      .upload(fileName, imageFile, { contentType: imageFile.type, upsert: false })
+    // Prompt içinde listeleri JSON string olarak veriyoruz ki model ne seçeceğini bilsin
+    const promptText = `
+      Sen uzman bir moda asistanısın. Bu fotoğraftaki kıyafeti analiz et.
+      
+      GÖREV:
+      Aşağıdaki JSON şemasını doldur. Ancak değerleri kafana göre yazma, SADECE aşağıda verdiğim "VALID_OPTIONS" listelerinden seç.
 
-    if (storageError) throw storageError
+      KURALLAR:
+      1. "category" alanını seçtikten sonra, "sub_category" alanını sadece o kategoriye ait listeden seçmelisin. (Örn: category "top" ise, sub_category "jeans" OLAMAZ).
+      2. "colors" ve "season" için çoklu seçim yapabilirsin (Array).
+      3. Renkler için "colors" listesinden en baskın olanları seç.
+      4. Sadece saf JSON döndür. Markdown block kullanma.
 
-    // Resim URL'ini al
-    const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(fileName);
+      KULLANABİLECEĞİN DEĞERLER (REFERANS):
+      ${JSON.stringify(VALID_OPTIONS)}
 
-    // Google Vision API İsteği
-    const googleApiKey = Deno.env.get('GOOGLE_VISION_API_KEY')
-    const googleApiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${googleApiKey}`
+      İSTENEN JSON FORMATI:
+      {
+        "basic_info": { 
+          "category": "string (VALID_OPTIONS.category listesinden)", 
+          "sub_category": "string (VALID_OPTIONS.sub_category içinden uygun olan)" 
+        },
+        "visual_details": { 
+          "primary_color": "string (VALID_OPTIONS.colors listesinden)", 
+          "secondary_colors": ["string (varsa diğer renkler)"], 
+          "pattern": "string (VALID_OPTIONS.pattern listesinden)" 
+        },
+        "context": { 
+          "seasons": ["string (VALID_OPTIONS.season listesinden)"], 
+          "formality": "string (VALID_OPTIONS.formality listesinden)" 
+        },
+        "attributes": { 
+          "fit": "string (VALID_OPTIONS.fit listesinden)", 
+          "style": "string (VALID_OPTIONS.style listesinden)",
+          "material": "string (VALID_OPTIONS.material listesinden)",
+          "features": ["string (VALID_OPTIONS.features listesinden)"]
+        }
+      }
+    `;
 
-    const googleResponse = await fetch(googleApiUrl, {
+    const requestBody = {
+      contents: [
+        {
+          parts: [
+            {
+              text: promptText
+            },
+            {
+              inline_data: {
+                mime_type: imageFile.type || "image/jpeg",
+                data: base64Image
+              }
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        response_mime_type: "application/json",
+        temperature: 0.2 // Daha tutarlı seçimler için temperature'ı düşürdüm
+      }
+    };
+
+    // --- API Request ---
+    const googleResponse = await fetch(apiUrl, {
       method: 'POST',
-      body: JSON.stringify({
-        requests: [
-          {
-            image: { content: base64Image },
-            features: [
-              { type: "LABEL_DETECTION", maxResults: 20 },
-              { type: "IMAGE_PROPERTIES" }
-            ]
-          }
-        ]
-      })
-    })
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
 
-    const googleJson = await googleResponse.json()
-    const result = googleJson.responses[0];
-    const labels = result.labelAnnotations || [];
-
-    // --- VERİYİ İŞLEME ---
-    
-    // 1. Etiket Analizi
-    const processed = processLabels(labels);
-
-    // 2. Renk Analizi
-    const dominantColors = result.imagePropertiesAnnotation?.dominantColors?.colors || [];
-    const primaryColorObj = dominantColors.sort((a, b) => b.score - a.score)[0]?.color;
-    const accentColorObj = dominantColors[1]?.color;
-
-    // Renk verisi yoksa null dönmeli
-    let colorAnalysis = {
-        dominant_color_name: null,
-        dominant_hex: null,
-        accent_hex: null
-    };
-
-    if (primaryColorObj) {
-        const r = primaryColorObj.red || 0;
-        const g = primaryColorObj.green || 0;
-        const b = primaryColorObj.blue || 0;
-        colorAnalysis.dominant_hex = rgbToHex(r, g, b);
-        colorAnalysis.dominant_color_name = getColorName(r, g, b);
+    if (!googleResponse.ok) {
+      const errorText = await googleResponse.text();
+      throw new Error(`Google API Hatası (${googleResponse.status}): ${errorText}`);
     }
 
-    if (accentColorObj) {
-        colorAnalysis.accent_hex = rgbToHex(accentColorObj.red || 0, accentColorObj.green || 0, accentColorObj.blue || 0);
-    }
+    const googleJson = await googleResponse.json();
+    const candidate = googleJson.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    // 3. Final JSON
-    const finalResponse = {
-      item_id: uniqueId,
-      image_url: publicUrl,
-      classification: {
-        main_category: processed.classification.main,
-        sub_category: processed.classification.sub,
-        detail_type: processed.classification.detail
+    if (!candidate) throw new Error("Google boş cevap döndü.");
+
+    // Temizlik
+    const cleanText = candidate.replace(/```json|```/g, '').trim();
+    const parsedData = JSON.parse(cleanText);
+
+    console.log("--- GEMINI ANALİZ SONUCU (RAW) ---");
+    console.log(JSON.stringify(parsedData, null, 2)); // Okunaklı yazdırmak için stringify kullanıyoruz
+
+    // -------------------
+    // --- Yanıt ---
+    return new Response(JSON.stringify({
+      success: true,
+      item_id: crypto.randomUUID(), // Rastgele bir ID verelim
+      image_url: "", // Resim yüklemedik, gerekirse frontend zaten kendi yüklüyor
+      analysis: parsedData
+    }), {
+      headers: {
+        "Content-Type": "application/json",
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+
+  } catch (error: any) {
+    console.error("Backend Error:", error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message
+    }), {
+      headers: {
+        "Content-Type": "application/json",
+        'Access-Control-Allow-Origin': '*'
       },
-      color_analysis: colorAnalysis,
-      attributes: {
-        material: processed.attributes.material,
-        pattern: processed.attributes.pattern,
-        fit: processed.attributes.fit
-      },
-      raw_tags: labels.map(l => l.description)
-    };
-
-    return new Response(JSON.stringify(finalResponse), {
-      headers: { "Content-Type": "application/json", 'Access-Control-Allow-Origin': '*' },
-    })
-
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { "Content-Type": "application/json", 'Access-Control-Allow-Origin': '*' },
-      status: 500,
-    })
+      status: 500
+    });
   }
-})
+});

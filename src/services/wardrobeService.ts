@@ -2,9 +2,20 @@ import { supabase } from '../lib/supabase';
 import { WardrobeItem } from './visionApi';
 import * as FileSystem from 'expo-file-system/legacy';
 import { toByteArray } from 'base64-js';
+import { databaseService } from './databaseService';
 
 export const wardrobeService = {
-    // Fetch all items for the user
+    // Initialize Local DB
+    initialize: async () => {
+        await databaseService.initDatabase();
+    },
+
+    // Get items from Local DB (Instant)
+    getLocalItems: async (userId: string) => {
+        return await databaseService.getItems(userId);
+    },
+
+    // Fetch from Supabase and Sync to Local DB
     fetchItems: async (userId: string) => {
         const { data, error } = await supabase
             .from('clothes')
@@ -15,6 +26,11 @@ export const wardrobeService = {
         if (error) {
             console.error('Error fetching wardrobe items:', error);
             throw error;
+        }
+
+        // Sync to local DB
+        if (data) {
+            await databaseService.saveItems(data);
         }
 
         return data;
@@ -28,6 +44,7 @@ export const wardrobeService = {
             const filePath = `${fileName}`;
 
             // Read file as base64
+            // Using string 'base64' directly to avoid deprecation/undefined issues with EncodingType
             const fileBase64 = await FileSystem.readAsStringAsync(imageUri, {
                 encoding: 'base64',
             });
@@ -101,16 +118,78 @@ export const wardrobeService = {
             throw error;
         }
 
+        // Add to local DB
+        if (data) {
+            await databaseService.addItem(data);
+        }
+
         return data;
     },
 
     // Delete an item
     deleteItem: async (itemId: string) => {
-        const { error } = await supabase
-            .from('clothes')
-            .delete()
-            .eq('id', itemId);
+        try {
+            // 1. Get image URL first to delete from storage
+            const { data: item, error: fetchError } = await supabase
+                .from('clothes')
+                .select('image_url')
+                .eq('id', itemId)
+                .single();
 
-        if (error) throw error;
+            if (fetchError) {
+                console.warn('Error fetching item for image deletion (continuing with record delete):', fetchError);
+            }
+
+            // 2. Delete from Storage
+            if (item?.image_url) {
+                try {
+                    // Extract path from URL. Adjust based on your actual URL structure if needed.
+                    // Assuming format includes '/uploads/' segment.
+                    // decodeURIComponent is important if the URL has special characters.
+                    const decodedUrl = decodeURIComponent(item.image_url);
+                    const urlParts = decodedUrl.split('/uploads/');
+
+                    if (urlParts.length > 1) {
+                        // Take the part after /uploads/ and strip any query parameters
+                        let filePath = urlParts[1];
+                        if (filePath.includes('?')) {
+                            filePath = filePath.split('?')[0];
+                        }
+
+                        console.log(`Attempting to delete file from storage via Edge Function. Path: ${filePath}`);
+
+                        const { data: removeData, error: deleteError } = await supabase.functions.invoke('delete-image', {
+                            body: { path: filePath }
+                        });
+
+                        if (deleteError) {
+                            console.error('Error calling delete-image function:', deleteError);
+                        } else if (removeData && !removeData.success) {
+                            console.error('Delete function returned error:', removeData.error);
+                        } else {
+                            console.log('Delete function response:', removeData);
+                        }
+                    } else {
+                        console.warn('Could not extract file path from URL:', item.image_url);
+                    }
+                } catch (e) {
+                    console.error('Error processing image deletion:', e);
+                }
+            }
+
+            // 3. Delete from Supabase DB
+            const { error } = await supabase
+                .from('clothes')
+                .delete()
+                .eq('id', itemId);
+
+            if (error) throw error;
+
+            // 4. Delete from local DB
+            await databaseService.deleteItem(itemId);
+        } catch (error) {
+            console.error('Error in deleteItem service:', error);
+            throw error;
+        }
     }
 };

@@ -1,4 +1,4 @@
-import { supabase } from '../app/lib/supabase';
+import { supabase } from '../lib/supabase';
 
 // WardrobeItem tipi - Yeni format
 export interface WardrobeItem {
@@ -118,7 +118,7 @@ export const uploadAndAnalyze = async (
  */
 export const analyzeImage = async (uri: string): Promise<WardrobeItem> => {
   const { data, error } = await uploadAndAnalyze(uri, { showAlert: false });
-  
+
   if (error || !data) {
     throw new Error(error?.message || 'Fotoğraf analiz edilemedi');
   }

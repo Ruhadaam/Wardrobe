@@ -13,6 +13,8 @@ import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import LottieView from "lottie-react-native";
 import { visionService, WardrobeItem } from "../../services/visionApi"; // visionApi.ts'den import
+import { wardrobeService } from "../../services/wardrobeService";
+import { useAuth } from "../../providers/AuthProvider";
 
 
 
@@ -37,15 +39,58 @@ const groupItemsByCategory = (items: WardrobeItem[]) => {
 
 export default function WardrobePage() {
   const { top } = useSafeAreaInsets();
+  const { user } = useAuth();
   const [items, setItems] = useState<WardrobeItem[]>([]); // Başlangıçta boş array
   const [groupedItems, setGroupedItems] = useState<Record<string, WardrobeItem[]>>({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      loadItems();
+    }
+  }, [user]);
 
   useEffect(() => {
     setGroupedItems(groupItemsByCategory(items));
   }, [items]);
 
+  const loadItems = async () => {
+    try {
+      if (!user) return;
+      setIsLoading(true);
+      const data = await wardrobeService.fetchItems(user.id);
+
+      // Map DB rows back to WardrobeItem shape for UI compatibility
+      const mappedItems: WardrobeItem[] = data.map((row: any) => {
+        // Use the saved JSON but ensure ID and Image URL are from DB
+        const analysis = row.analysis_json.analysis || row.analysis_json; // Handle potential wrapping
+        return {
+          ...row.analysis_json,
+          item_id: row.id,
+          image_url: row.image_url,
+          analysis: analysis
+        };
+      });
+
+      setItems(mappedItems);
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error loading wardrobe',
+        text2: 'Could not fetch your items.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleAddItem = async () => {
+    if (!user) {
+      Toast.show({ type: 'error', text1: 'Please sign in to add items.' });
+      return;
+    }
+
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permissionResult.granted === false) {
       Toast.show({
@@ -60,7 +105,7 @@ export default function WardrobePage() {
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: false,
-      quality: 1,
+      quality: 0.8, // Slightly reduced quality for faster uploads
     });
 
     if (pickerResult.canceled) {
@@ -73,14 +118,30 @@ export default function WardrobePage() {
 
     Toast.show({
       type: 'info',
-      text1: 'Analyzing...',
-      text2: 'AI wizard is examining your outfit!',
+      text1: 'Processing...',
+      text2: 'Analyzing and saving to your wardrobe.',
       position: 'top',
-      visibilityTime: 2000,
+      visibilityTime: 4000,
     });
 
     try {
-      const newItem = await visionService.analyzeImage(imageUri);
+      // 1. Analyze
+      const visionItem = await visionService.analyzeImage(imageUri);
+
+      // 2. Upload Image
+      const publicUrl = await wardrobeService.uploadImage(user.id, imageUri);
+
+      // 3. Save to DB
+      const savedItem = await wardrobeService.addItem(user.id, visionItem, publicUrl);
+
+      // 4. Update UI
+      // Construct the item for local state immediately
+      const newItem: WardrobeItem = {
+        ...visionItem,
+        item_id: savedItem.id,
+        image_url: publicUrl,
+      };
+
       setItems(prevItems => [newItem, ...prevItems]);
 
       const categoryValue = newItem.analysis?.basic_info?.category || newItem.basic_info?.category || newItem.classification?.main_category || null;
@@ -92,17 +153,17 @@ export default function WardrobePage() {
 
       Toast.show({
         type: 'success',
-        text1: 'That\'s it!',
+        text1: 'Saved!',
         text2: `${categoryText} added to your wardrobe.`,
         position: 'top',
         visibilityTime: 3000,
       });
     } catch (error) {
-      console.error("Error occurred during image analysis:", error);
+      console.error("Error occurred during process:", error);
       Toast.show({
         type: 'error',
         text1: 'Oops! Something went wrong',
-        text2: 'We encountered an error while analyzing your outfit. Can you try again?',
+        text2: 'Could not save the item. Please try again.',
         position: 'top',
         visibilityTime: 4000,
       });

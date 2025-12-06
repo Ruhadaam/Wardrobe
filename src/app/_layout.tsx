@@ -1,6 +1,6 @@
 import "../global.css";
-import { Slot } from "expo-router";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { Slot, useRouter, useSegments } from "expo-router";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Platform } from "react-native";
@@ -16,10 +16,15 @@ import {
 } from "@expo-google-fonts/inter";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
+import { AuthProvider, useAuth } from "../providers/AuthProvider";
 
 SplashScreen.preventAutoHideAsync();
 
-export default function Layout() {
+function InitialLayout() {
+  const { session, loading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -29,12 +34,28 @@ export default function Layout() {
   });
 
   useEffect(() => {
-    if (Platform.OS !== 'android' || fontsLoaded || fontError) {
+    if (loading) return;
+
+    if ((Platform.OS !== 'android' || fontsLoaded || fontError)) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, loading]);
 
-  if (Platform.OS === 'android' && !fontsLoaded && !fontError) {
+  useEffect(() => {
+    if (loading) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (!session && !inAuthGroup) {
+      // Redirect to the sign-in page.
+      router.replace('/(auth)/login');
+    } else if (session && inAuthGroup) {
+      // Redirect away from the sign-in page.
+      router.replace('/(tabs)/wardrobe');
+    }
+  }, [session, loading, segments]);
+
+  if ((Platform.OS === 'android' && !fontsLoaded && !fontError) || loading) {
     return null;
   }
 
@@ -46,5 +67,13 @@ export default function Layout() {
         <Toast />
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+export default function Layout() {
+  return (
+    <AuthProvider>
+      <InitialLayout />
+    </AuthProvider>
   );
 }

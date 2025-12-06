@@ -3,6 +3,7 @@ import { Tabs } from "expo-router";
 import { Platform, View } from "react-native";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Header from "../../components/Header";
 
 // iOS Tab Bar - NativeTabs kullanıyor (eski hali)
 function IOSTabBar() {
@@ -64,7 +65,8 @@ function AndroidTabBar() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
+        header: () => <Header />,
+        headerShown: true, // Need this true now to show our custom header
         tabBarActiveTintColor: '#06b6d4', // text-cyan-500
         tabBarInactiveTintColor: '#94a3b8', // text-slate-400
         tabBarStyle,
@@ -121,8 +123,18 @@ function AndroidTabBar() {
 }
 
 export default function TabsLayout() {
+  const { top } = useSafeAreaInsets();
+
   if (Platform.OS === "ios") {
-    return <IOSTabBar />;
+    // iOS implementation needs adaptation for global header if using NativeTabs
+    // But for now focusing on standard Tabs / Android as per previous context
+    // NativeTabs doesn't support 'header' prop easily in same way, might need wrapping
+    return (
+      <View style={{ flex: 1, paddingTop: top }}>
+        <Header />
+        <IOSTabBar />
+      </View>
+    );
   }
   return <AndroidTabBar />;
 }

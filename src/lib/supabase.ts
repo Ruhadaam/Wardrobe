@@ -38,6 +38,14 @@ export const auth = {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: cleanEmail,
       password,
+      options: {
+        data: {
+          name: profile.name,
+          surname: profile.surname,
+          gender: profile.gender,
+          birthday: profile.birthday.toISOString().split('T')[0],
+        }
+      }
     });
 
     if (signUpError) return { data, error: signUpError };
@@ -45,10 +53,10 @@ export const auth = {
     const { user } = data;
 
     if (user) {
-      // 2. Insert into public.users
+      // 2. Insert into public.users (Use upsert to handle potential race conditions safely)
       const { error: profileError } = await supabase
         .from('users')
-        .insert([
+        .upsert([
           {
             id: user.id,
             email: cleanEmail,

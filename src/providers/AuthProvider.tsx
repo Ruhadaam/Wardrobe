@@ -71,7 +71,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .single();
 
             if (error) {
-                console.error('Error fetching profile:', error);
+                // If profile doesn't exist yet (race condition), try to create it from metadata
+                if (error.code === 'PGRST116') {
+                    console.log('Profile not found, checking metadata...');
+                    const session = await supabase.auth.getSession();
+                    const user = session.data.session?.user;
+
+                    if (user?.user_metadata) {
+                        const metadata = user.user_metadata;
+                        // Attempt to rescue by creating the profile
+                        const { data: newProfile, error: createError } = await supabase
+                            .from('users')
+                            .upsert({
+                                id: userId,
+                                email: user.email,
+                                name: metadata.name,
+                                surname: metadata.surname,
+                                gender: metadata.gender,
+                                birthday: metadata.birthday,
+                                photo_url: '',
+                            })
+                            .select()
+                            .single();
+
+                        if (createError) {
+                            console.error('Error creating profile from metadata:', createError);
+                        } else {
+                            console.log('Recovered profile from metadata');
+                            setProfile(newProfile);
+                            // Also update the local user state to reflect any changes if needed
+                        }
+                    }
+                } else {
+                    console.error('Error fetching profile:', error);
+                }
             } else {
                 setProfile(data);
             }

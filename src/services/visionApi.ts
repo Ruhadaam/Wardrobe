@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 // WardrobeItem tipi - Yeni format
 export interface WardrobeItem {
@@ -85,11 +86,28 @@ export const uploadAndAnalyze = async (
   setLoading?.(true);
 
   try {
+    // 1. Görüntü Optimizasyonu
+    console.log('Orjinal fotoğraf:', uri);
+
+    // Resmi resize ve compress et
+    // 1024px genişlik/yükseklik yeterli kalitede analiz için, 
+    // compress 0.7-0.8 ideal bir oran.
+    const manipResult = await manipulateAsync(
+      uri,
+      [{ resize: { width: 1024 } }], // Genişliği 1024 yap, yükseklik orantılı kalsın. (Veya height: 1024) - Genelde en uzun kenarı kısıtlamak daha iyi ama şimdilik width bazlı.
+      // Not: Dikey fotolarda width 1024 ise height daha büyük olabilir. 
+      // Ancak Expo manipulate resize işleminde sadece bir boyut verirseniz diğerini korur. 
+      // Eğer çok büyük dikey foto ise (örn 3000x4000), 1024x1365'e düşer ki bu gayet iyidir.
+      { compress: 0.8, format: SaveFormat.JPEG }
+    );
+
+    console.log('Optimize edilmiş fotoğraf:', manipResult.uri, 'width:', manipResult.width, 'height:', manipResult.height);
+
     // React Native'de FormData oluşturma
     const formData = new FormData();
 
     formData.append('file', {
-      uri: uri,
+      uri: manipResult.uri, // Optimize edilmiş URI kullanılıyor
       name: 'photo.jpg', // Sunucuda benzersiz isim zaten veriyoruz, burası önemsiz
       type: 'image/jpeg',
     } as any); // TypeScript kullanıyorsanız 'as any' gerekebilir

@@ -9,10 +9,6 @@ let dbInstance: SQLite.SQLiteDatabase | null = null;
 const getDb = async () => {
     if (!dbInstance) {
         dbInstance = await SQLite.openDatabaseAsync(DB_NAME);
-        // Ensure table exists on every init to be safe, or just rely on initDatabase being called first.
-        // For robustness, let's just return the instance, assuming initDatabase was called effectively,
-        // or we can lazily init the table here too.
-        // Let's stick to the current pattern but reuse the instance.
     }
     return dbInstance;
 };
@@ -34,6 +30,16 @@ export const databaseService = {
         );
       `);
 
+            // Create outfits table
+            await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS outfits (
+          id TEXT PRIMARY KEY NOT NULL,
+          user_id TEXT NOT NULL,
+          items_json TEXT NOT NULL, -- JSON array of item objects
+          created_at TEXT NOT NULL
+        );
+      `);
+
             console.log('Database initialized successfully');
             return db;
         } catch (error) {
@@ -47,29 +53,20 @@ export const databaseService = {
         try {
             const db = await getDb();
 
-            // Clear existing items for these IDs or all? 
-            // For simplicity/sync: Replace logic or Insert or Replace.
-            // But we generally sync by fetching all remotely. 
-            // Let's implement bulk replace for simplicity if fetching all, 
-            // or upsert for individual. 
-
-            // If we are syncing ALL items for a user, we might want to clear old ones first,
-            // but that risks wiping offline data if sync fails partially? 
-            // Safer: Loop and UPSERT.
-
             for (const item of items) {
-                const params = [
-                    item.id ?? null,
-                    item.user_id ?? null,
-                    item.image_url ?? null,
-                    JSON.stringify(item.analysis_json || {}),
-                    item.created_at || new Date().toISOString()
-                ];
-
-                // Validate params to ensure no undefined values slip through (though ?? null handles most)
-                if (params.some(p => p === undefined)) {
-                    console.warn('Undefined parameter found in saveItems', item);
+                // Skip invalid items that would cause DB errors
+                if (!item.id || !item.user_id) {
+                    console.warn('Skipping invalid item in saveItems:', item);
+                    continue;
                 }
+
+                const params = [
+                    String(item.id),
+                    String(item.user_id),
+                    String(item.image_url || ''), // Provide default for not-null string
+                    JSON.stringify(item.analysis_json || {}),
+                    String(item.created_at || new Date().toISOString())
+                ];
 
                 await db.runAsync(
                     `INSERT OR REPLACE INTO clothes (id, user_id, image_url, analysis_json, created_at) VALUES (?, ?, ?, ?, ?)`,
@@ -84,13 +81,18 @@ export const databaseService = {
     // Add single item
     addItem: async (item: any) => {
         try {
+            if (!item.id || !item.user_id) {
+                console.error('Cannot add item with missing id or user_id:', item);
+                return;
+            }
+
             const db = await getDb();
             const params = [
-                item.id ?? null,
-                item.user_id ?? null,
-                item.image_url ?? null,
-                JSON.stringify(item.analysis_json ?? {}),
-                item.created_at || new Date().toISOString()
+                String(item.id),
+                String(item.user_id),
+                String(item.image_url || ''),
+                JSON.stringify(item.analysis_json || {}),
+                String(item.created_at || new Date().toISOString())
             ];
 
             console.log('Adding item to local DB:', item.id);
@@ -101,18 +103,56 @@ export const databaseService = {
             );
         } catch (error) {
             console.error('Error adding local item:', error);
-            // Don't rethrow to avoid blocking the UI if local save fails, 
-            // but log it clearly.
+            // Don't rethrow to avoid blocking the UI if local save fails
         }
     },
 
     // Delete item
     deleteItem: async (id: string) => {
         try {
+            if (!id) return;
             const db = await getDb();
-            await db.runAsync('DELETE FROM clothes WHERE id = ?', [id]);
+            await db.runAsync('DELETE FROM clothes WHERE id = ?', [String(id)]);
         } catch (error) {
             console.error('Error deleting local item:', error);
+        }
+    },
+
+    // Sync user items (Full Sync: Delete missing, Upsert new)
+    syncUserItems: async (userId: string, remoteItems: any[]) => {
+        try {
+            if (!userId) return;
+
+            const db = await getDb();
+
+            // 1. Get all local IDs for this user
+            const localRows = await db.getAllAsync<{ id: string }>('SELECT id FROM clothes WHERE user_id = ?', [String(userId)]);
+            const localIds = new Set(localRows.map(r => r.id));
+            const remoteIds = new Set(remoteItems.map(i => i.id));
+
+            // 2. Identify items to delete (present locally but not remotely)
+            const idsToDelete = [...localIds].filter(id => !remoteIds.has(id));
+
+            if (idsToDelete.length > 0) {
+                console.log(`[Sync] Deleting ${idsToDelete.length} obsolete items from local DB sequentially to avoid NPE`);
+                for (const id of idsToDelete) {
+                    try {
+                        // Delete individually to be safer against native binding errors
+                        await db.runAsync('DELETE FROM clothes WHERE id = ?', [String(id)]);
+                    } catch (err) {
+                        console.error(`[Sync] Error deleting individual item ${id}:`, err);
+                    }
+                }
+            }
+
+            // 3. Upsert remote items
+            if (remoteItems.length > 0) {
+                await databaseService.saveItems(remoteItems);
+            }
+
+        } catch (error) {
+            console.error('Error syncing items:', error);
+            // Don't throw, just log. Sync failure shouldn't crash app
         }
     },
 
@@ -120,7 +160,7 @@ export const databaseService = {
     getItems: async (userId: string) => {
         try {
             const db = await getDb();
-            const allRows = await db.getAllAsync('SELECT * FROM clothes WHERE user_id = ? ORDER BY created_at DESC', [userId]);
+            const allRows = await db.getAllAsync('SELECT * FROM clothes WHERE user_id = ? ORDER BY created_at DESC', [String(userId)]);
 
             // Map back to expected structure
             return allRows.map((row: any) => ({
@@ -130,6 +170,93 @@ export const databaseService = {
         } catch (error) {
             console.error('Error getting local items:', error);
             return [];
+        }
+    },
+
+    // --- Outfits ---
+
+    saveOutfit: async (outfit: { id: string, user_id: string, items_json: string, created_at: string }) => {
+        try {
+            const db = await getDb();
+            await db.runAsync(
+                `INSERT OR REPLACE INTO outfits (id, user_id, items_json, created_at) VALUES (?, ?, ?, ?)`,
+                [String(outfit.id), String(outfit.user_id), String(outfit.items_json), String(outfit.created_at)]
+            );
+            console.log('Saved outfit to local DB:', outfit.id);
+        } catch (error) {
+            console.error('Error saving outfit:', error);
+        }
+    },
+
+    getOutfits: async (userId: string) => {
+        try {
+            const db = await getDb();
+            const allRows = await db.getAllAsync('SELECT * FROM outfits WHERE user_id = ? ORDER BY created_at DESC', [String(userId)]);
+            return allRows.map((row: any) => ({
+                ...row,
+                items: JSON.parse(row.items_json)
+            }));
+        } catch (error) {
+            console.error('Error getting outfits:', error);
+            return [];
+        }
+    },
+
+    deleteOutfit: async (id: string) => {
+        try {
+            const db = await getDb();
+            await db.runAsync('DELETE FROM outfits WHERE id = ?', [String(id)]);
+        } catch (error) {
+            console.error('Error deleting outfit:', error);
+        }
+    },
+
+    saveOutfits: async (outfits: any[]) => {
+        try {
+            const db = await getDb();
+            for (const outfit of outfits) {
+                if (!outfit.id || !outfit.user_id) continue;
+
+                // If items_json is an object (from Supabase), stringify it
+                let itemsJsonStr = outfit.items_json;
+                if (typeof itemsJsonStr !== 'string') {
+                    itemsJsonStr = JSON.stringify(itemsJsonStr);
+                }
+
+                await db.runAsync(
+                    `INSERT OR REPLACE INTO outfits (id, user_id, items_json, created_at) VALUES (?, ?, ?, ?)`,
+                    [String(outfit.id), String(outfit.user_id), itemsJsonStr, String(outfit.created_at)]
+                );
+            }
+        } catch (error) {
+            console.error('Error saving bulk outfits:', error);
+        }
+    },
+
+    syncUserOutfits: async (userId: string, remoteOutfits: any[]) => {
+        try {
+            if (!userId) return;
+            const db = await getDb();
+
+            // 1. Get all local IDs
+            const localRows = await db.getAllAsync<{ id: string }>('SELECT id FROM outfits WHERE user_id = ?', [String(userId)]);
+            const localIds = new Set(localRows.map(r => r.id));
+            const remoteIds = new Set(remoteOutfits.map(o => o.id));
+
+            // 2. Delete obsolete
+            const idsToDelete = [...localIds].filter(id => !remoteIds.has(id));
+            if (idsToDelete.length > 0) {
+                for (const id of idsToDelete) {
+                    await db.runAsync('DELETE FROM outfits WHERE id = ?', [String(id)]);
+                }
+            }
+
+            // 3. Upsert remote
+            if (remoteOutfits.length > 0) {
+                await databaseService.saveOutfits(remoteOutfits);
+            }
+        } catch (error) {
+            console.error('Error syncing outfits:', error);
         }
     }
 };

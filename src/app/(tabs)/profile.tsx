@@ -1,14 +1,16 @@
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { View, Text, TouchableOpacity, Image, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../providers/AuthProvider";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Header from "../../components/Header";
 
 export default function ProfilePage() {
   const { top } = useSafeAreaInsets();
   const { signOut, user } = useAuth();
 
   return (
-    <View className="flex-1 bg-slate-900" style={{ paddingTop: top }}>
+    <View className="flex-1 bg-slate-900">
+      {Platform.OS === 'ios' && <Header />}
       <View className="flex-1 px-4">
         <View className="items-center mt-8 mb-8">
           <View className="w-24 h-24 bg-slate-800 rounded-full items-center justify-center mb-4 border border-slate-700">

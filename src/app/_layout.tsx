@@ -17,6 +17,7 @@ import {
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "../providers/AuthProvider";
+import { WardrobeProvider } from "../providers/WardrobeProvider";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -73,7 +74,9 @@ function InitialLayout() {
 export default function Layout() {
   return (
     <AuthProvider>
-      <InitialLayout />
+      <WardrobeProvider>
+        <InitialLayout />
+      </WardrobeProvider>
     </AuthProvider>
   );
 }

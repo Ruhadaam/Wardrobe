@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Alert,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -16,10 +17,12 @@ import LottieView from "lottie-react-native";
 import { visionService, WardrobeItem } from "../../services/visionApi"; // visionApi.ts'den import
 import { wardrobeService } from "../../services/wardrobeService";
 import { useAuth } from "../../providers/AuthProvider";
+import Header from "@/components/Header";
+import { useWardrobe } from "../../providers/WardrobeProvider";
 
 
 
-// Gardırop ögelerini ana kategoriye göre gruplayan yardımcı fonksiyon
+// op ögelerini ana kategoriye göre gruplayan yardımcı fonksiyon
 const groupItemsByCategory = (items: WardrobeItem[]) => {
   return items.reduce((acc, item) => {
     const categoryValue = item.analysis?.basic_info?.category
@@ -41,62 +44,13 @@ const groupItemsByCategory = (items: WardrobeItem[]) => {
 export default function WardrobePage() {
   const { top } = useSafeAreaInsets();
   const { user } = useAuth();
-  const [items, setItems] = useState<WardrobeItem[]>([]); // Başlangıçta boş array
+  const { items, loading: isLoading, refreshItems } = useWardrobe();
   const [groupedItems, setGroupedItems] = useState<Record<string, WardrobeItem[]>>({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (user) {
-      loadItems();
-    }
-  }, [user]);
 
   useEffect(() => {
     setGroupedItems(groupItemsByCategory(items));
   }, [items]);
-
-  const loadItems = async () => {
-    if (!user) return;
-    setIsLoading(true);
-
-    try {
-      // 1. Initialize DB (safe to call multiple times)
-      await wardrobeService.initialize();
-
-      // 2. Load Local Items (Fast)
-      const localData = await wardrobeService.getLocalItems(user.id);
-      if (localData && localData.length > 0) {
-        setItems(mapItems(localData));
-      }
-
-      // 3. Fetch Remote & Sync (Background update if local existed, else primary loading)
-      const remoteData = await wardrobeService.fetchItems(user.id);
-      setItems(mapItems(remoteData));
-
-    } catch (error) {
-      console.error('Failed to load items:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Error loading wardrobe',
-        text2: 'Could not sync with cloud.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const mapItems = (data: any[]): WardrobeItem[] => {
-    return data.map((row: any) => {
-      const analysis = row.analysis_json.analysis || row.analysis_json;
-      return {
-        ...row.analysis_json,
-        item_id: row.id,
-        image_url: row.image_url,
-        analysis: analysis
-      };
-    });
-  };
 
   const handleDeleteItem = (itemId: string) => {
     Alert.alert(
@@ -112,12 +66,10 @@ export default function WardrobePage() {
           style: "destructive",
           onPress: async () => {
             try {
-              // Optimistic UI update
-              const previousItems = [...items];
-              setItems(current => current.filter(i => i.item_id !== itemId));
-
               // Perform delete
               await wardrobeService.deleteItem(itemId);
+
+              await refreshItems();
 
               Toast.show({
                 type: 'success',
@@ -129,7 +81,7 @@ export default function WardrobePage() {
               // Revert UI if failed (optional, but good practice. For now simpler reload is fine or just error msg)
               // In a full robust app we'd revert the state here. 
               // For now just show error.
-              loadItems(); // Reload to sync state
+              refreshItems();
               Toast.show({
                 type: 'error',
                 text1: 'Failed to delete item',
@@ -192,14 +144,15 @@ export default function WardrobePage() {
       const savedItem = await wardrobeService.addItem(user.id, visionItem, publicUrl);
 
       // 4. Update UI
-      // Construct the item for local state immediately
+      // Refresh global state
+      await refreshItems();
+
+      // Construct newItem for Toast message logic only
       const newItem: WardrobeItem = {
         ...visionItem,
         item_id: savedItem.id,
         image_url: publicUrl,
       };
-
-      setItems(prevItems => [newItem, ...prevItems]);
 
       const categoryValue = newItem.analysis?.basic_info?.category || newItem.basic_info?.category || newItem.classification?.main_category || null;
       const subCategoryValue = newItem.analysis?.basic_info?.sub_category || newItem.basic_info?.sub_category || newItem.classification?.sub_category || null;
@@ -235,9 +188,9 @@ export default function WardrobePage() {
 
 
   return (
-    <View className="flex-1 bg-slate-900" style={{ paddingTop: top }}>
-      {/* Header */}
-      <View className="px-5 pt-6 pb-5 bg-transparent">
+    <View className="flex-1 bg-slate-900" >
+      {Platform.OS === 'ios' && <Header />}
+      <View className="px-5 pt-6 pb-5 bg-transparent ">
         <View className="flex-row justify-between items-center mb-3">
           <View>
             <Text className="text-4xl font-black font-inter-black text-white mb-1 tracking-tight shadow-cyan-500/50 shadow-lg">
@@ -276,7 +229,7 @@ export default function WardrobePage() {
       {/* Gardırop İçeriği */}
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }} // Increased padding for floating tab bar
+        contentContainerStyle={{ paddingBottom: 120, paddingTop: 15 }} // Increased padding for floating tab bar
       >
         {Object.keys(groupedItems).length === 0 && !isAnalyzing ? (
           <View className="flex-1 justify-center items-center px-6 mt-32">

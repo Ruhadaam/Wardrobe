@@ -3,6 +3,7 @@ import { WardrobeItem } from './visionApi';
 import * as FileSystem from 'expo-file-system/legacy';
 import { toByteArray } from 'base64-js';
 import { databaseService } from './databaseService';
+import * as Crypto from 'expo-crypto';
 
 export const wardrobeService = {
     // Initialize Local DB
@@ -30,7 +31,7 @@ export const wardrobeService = {
 
         // Sync to local DB
         if (data) {
-            await databaseService.saveItems(data);
+            await databaseService.syncUserItems(userId, data);
         }
 
         return data;
@@ -76,7 +77,7 @@ export const wardrobeService = {
     addItem: async (userId: string, visionItem: WardrobeItem, publicImageUrl: string) => {
         const analysis = visionItem.analysis;
         // Helper to avoid TS errors on empty objects
-        const safeAnalysis = analysis || {};
+        const safeAnalysis: any = analysis || {};
         const basicInfo = safeAnalysis.basic_info || {};
         const visual = safeAnalysis.visual_details || {};
         const context = safeAnalysis.context || {};
@@ -191,5 +192,76 @@ export const wardrobeService = {
             console.error('Error in deleteItem service:', error);
             throw error;
         }
+    },
+
+
+
+    // --- Outfits ---
+    saveOutfit: async (userId: string, items: WardrobeItem[]) => {
+        const outfit = {
+            id: Crypto.randomUUID(),
+            user_id: userId,
+            items_json: JSON.stringify(items),
+            created_at: new Date().toISOString()
+        };
+
+        // 1. Save to Local DB (Priority for UI)
+        await databaseService.saveOutfit(outfit);
+
+        // 2. Sync to Supabase (Background)
+        try {
+            const { error } = await supabase
+                .from('outfits')
+                .insert([{
+                    id: outfit.id,
+                    user_id: outfit.user_id,
+                    items_json: items, // Supabase expects JSON object for jsonb column, client handles stringify
+                    created_at: outfit.created_at
+                }]);
+
+            if (error) {
+                console.error('Error saving outfit to Supabase:', error);
+            } else {
+                console.log('Saved outfit to Supabase:', outfit.id);
+            }
+        } catch (e) {
+            console.error('Supabase sync error:', e);
+        }
+
+        return outfit;
+    },
+
+    getOutfits: async (userId: string) => {
+        // Fetch from Supabase
+        const { data, error } = await supabase
+            .from('outfits')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (data) {
+            // Sync to local
+            await databaseService.syncUserOutfits(userId, data);
+        } else if (error) {
+            console.warn('Error fetching outfits from Supabase, failing over to local:', error);
+        }
+
+        return await databaseService.getOutfits(userId);
+    },
+
+    deleteOutfit: async (id: string) => {
+        // Delete from Supabase
+        const { error } = await supabase
+            .from('outfits')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error deleting outfit from Supabase:', error);
+            throw error;
+        }
+
+        // Delete from Local
+        await databaseService.deleteOutfit(id);
     }
 };

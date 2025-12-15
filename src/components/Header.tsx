@@ -14,8 +14,8 @@ export default function Header() {
 
     return (
         <View
-            style={{ paddingTop: top + 10 }}
-            className="bg-slate-900 px-5 pb-4 flex-row justify-between items-center"
+            style={{ paddingTop: top + 20 }}
+            className="bg-slate-900 px-5 border-b border-slate-800 p-4 flex-row justify-between items-center"
         >
             <View className="flex-row items-center">
                 <View className="w-10 h-10 bg-cyan-500/10 rounded-full items-center justify-center border border-cyan-500/20 mr-3">

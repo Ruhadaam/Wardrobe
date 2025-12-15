@@ -1,74 +1,81 @@
-import { NativeTabs, Label, Icon } from "expo-router/unstable-native-tabs";
+import { Platform, View } from 'react-native';
 import { Tabs } from "expo-router";
-import { Platform, View } from "react-native";
-import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { NativeTabs, Icon, Label, VectorIcon } from 'expo-router/unstable-native-tabs';
+import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Header from "../../components/Header";
 
-// iOS Tab Bar - NativeTabs kullanıyor (eski hali)
+// iOS Implementation - Native Tabs
 function IOSTabBar() {
   return (
-    <NativeTabs>
+    <NativeTabs
+      tintColor="#06b6d4"
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
       <NativeTabs.Trigger name="wardrobe">
-        <Icon sf="tshirt.fill" />
         <Label>Wardrobe</Label>
+        <Icon sf={{ default: 'tshirt', selected: 'tshirt.fill' }} />
       </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="outfit">
-        <Icon sf="square.stack.fill" />
         <Label>Combine</Label>
+        <Icon sf="bag" />
       </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="history">
-        <Icon sf="clock.fill" />
         <Label>History</Label>
+        <Icon sf={{ default: 'clock', selected: 'clock.fill' }} />
       </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="profile">
-        <Icon sf="person.fill" />
         <Label>Profile</Label>
+        <Icon sf={{ default: 'person', selected: 'person.fill' }} />
       </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
 
-// Android Tab Bar - Standart Tabs kullanıyor
+// Android Implementation - Custom Modern Tabs
 function AndroidTabBar() {
   const { bottom } = useSafeAreaInsets();
 
-  // Tailwind CSS değerleri
   const tabBarStyle = {
     position: 'absolute' as const,
     bottom: Math.max(bottom, 30),
-    backgroundColor: '#0f172a', // bg-slate-900
-    borderRadius: 30, // rounded-3xl
+    backgroundColor: '#0f172a',
+    borderRadius: 30,
     borderTopWidth: 0,
-    height: 60, // h-15
+    height: 60,
     elevation: 10,
-    shadowColor: '#06b6d4', // shadow-cyan-500
+    shadowColor: '#06b6d4',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
-    marginLeft: 20, // mx-5
-    marginRight: 20, // mx-5
+    marginLeft: 20,
+    marginRight: 20,
   };
 
   const tabBarItemStyle = {
-    height: 60, // h-15
-    paddingVertical: 5, // py-1.5
+    height: 60,
+    paddingVertical: 5,
   };
 
   const tabBarLabelStyle = {
-    fontSize: 10, // text-xs
-    fontWeight: '600' as const, // font-semibold
-    fontFamily: Platform.OS === 'android' ? 'Inter_600SemiBold' : undefined,
-    marginBottom: 4, // mb-1
+    fontSize: 10,
+    fontWeight: '600' as const,
+    fontFamily: 'Inter_600SemiBold',
+    marginBottom: 4,
   };
 
   return (
     <Tabs
       screenOptions={{
         header: () => <Header />,
-        headerShown: true, // Need this true now to show our custom header
-        tabBarActiveTintColor: '#06b6d4', // text-cyan-500
-        tabBarInactiveTintColor: '#94a3b8', // text-slate-400
+        headerShown: true,
+        tabBarActiveTintColor: '#06b6d4',
+        tabBarInactiveTintColor: '#94a3b8',
         tabBarStyle,
         tabBarItemStyle,
         tabBarLabelStyle,
@@ -78,7 +85,7 @@ function AndroidTabBar() {
         name="wardrobe"
         options={{
           title: "Wardrobe",
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ color, focused }) => (
             <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-800' : ''}`}>
               <MaterialCommunityIcons name={focused ? "wardrobe" : "wardrobe-outline"} size={24} color={color} />
             </View>
@@ -89,7 +96,7 @@ function AndroidTabBar() {
         name="outfit"
         options={{
           title: "Combine",
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ color, focused }) => (
             <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-800' : ''}`}>
               <MaterialIcons name="checkroom" size={24} color={color} />
             </View>
@@ -100,7 +107,7 @@ function AndroidTabBar() {
         name="history"
         options={{
           title: "History",
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ color, focused }) => (
             <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-800' : ''}`}>
               <MaterialIcons name="history" size={24} color={color} />
             </View>
@@ -111,7 +118,7 @@ function AndroidTabBar() {
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ color, focused }) => (
             <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-800' : ''}`}>
               <MaterialIcons name={focused ? "person" : "person-outline"} size={24} color={color} />
             </View>
@@ -122,20 +129,10 @@ function AndroidTabBar() {
   );
 }
 
-export default function TabsLayout() {
-  const { top } = useSafeAreaInsets();
-
-  if (Platform.OS === "ios") {
-    // iOS implementation needs adaptation for global header if using NativeTabs
-    // But for now focusing on standard Tabs / Android as per previous context
-    // NativeTabs doesn't support 'header' prop easily in same way, might need wrapping
-    return (
-      <View style={{ flex: 1, paddingTop: top }}>
-        <Header />
-        <IOSTabBar />
-      </View>
-    );
+export default function Layout() {
+  if (Platform.OS === 'android') {
+    return <AndroidTabBar />;
   }
-  return <AndroidTabBar />;
+  return <IOSTabBar />;
 }
 

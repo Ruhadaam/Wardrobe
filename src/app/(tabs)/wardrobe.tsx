@@ -15,6 +15,7 @@ import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import LottieView from "lottie-react-native";
 import { visionService, WardrobeItem } from "../../services/visionApi"; // visionApi.ts'den import
+import { formatLabel } from "../../utils/textUtils";
 import { wardrobeService } from "../../services/wardrobeService";
 import { useAuth } from "../../providers/AuthProvider";
 import Header from "@/components/Header";
@@ -157,8 +158,8 @@ export default function WardrobePage() {
       const categoryValue = newItem.analysis?.basic_info?.category || newItem.basic_info?.category || newItem.classification?.main_category || null;
       const subCategoryValue = newItem.analysis?.basic_info?.sub_category || newItem.basic_info?.sub_category || newItem.classification?.sub_category || null;
 
-      const category = categoryValue ? categoryValue : '';
-      const subCategory = subCategoryValue ? subCategoryValue : 'Clothing';
+      const category = categoryValue ? formatLabel(categoryValue) : '';
+      const subCategory = subCategoryValue ? formatLabel(subCategoryValue) : 'Clothing';
       const categoryText = category ? `${category} / ${subCategory}` : subCategory;
 
       Toast.show({
@@ -282,7 +283,7 @@ export default function WardrobePage() {
                         elevation: 6,
                       }}
                     />
-                    <Text className="text-2xl font-black font-inter-black text-white tracking-tight shadow-sm">{category}</Text>
+                    <Text className="text-2xl font-black font-inter-black text-white tracking-tight shadow-sm">{formatLabel(category)}</Text>
                   </View>
                   <View className="bg-slate-800 border border-slate-700 rounded-full px-3 py-1.5 shadow-sm">
                     <Text className="text-xs font-bold font-inter-bold text-slate-300">
@@ -324,7 +325,7 @@ export default function WardrobePage() {
                         <View className="absolute top-3 left-3 bg-black/60 rounded-full px-2.5 py-1 backdrop-blur-md border border-white/10">
                           {(item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color) && (
                             <Text className="text-white text-xs font-semibold font-inter-semibold capitalize">
-                              {item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color}
+                              {formatLabel(item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color)}
                             </Text>
                           )}
                         </View>
@@ -341,42 +342,42 @@ export default function WardrobePage() {
 
                       <View className="p-4 bg-slate-800">
                         <Text className="text-lg font-bold font-inter-bold text-white mb-2" numberOfLines={1}>
-                          {item.analysis?.basic_info?.sub_category || item.basic_info?.sub_category || item.classification?.sub_category || 'Clothing'}
+                          {formatLabel(item.analysis?.basic_info?.sub_category || item.basic_info?.sub_category || item.classification?.sub_category || 'Clothing')}
                         </Text>
 
                         <View className="flex-row flex-wrap gap-1.5">
                           {(item.analysis?.attributes?.material || item.attributes?.material) && (
                             <View className="bg-cyan-900/50 border border-cyan-500/30 px-2.5 py-1 rounded-lg">
                               <Text className="text-xs font-bold font-inter-bold text-cyan-300 capitalize">
-                                {item.analysis?.attributes?.material || item.attributes?.material}
+                                {formatLabel(item.analysis?.attributes?.material || item.attributes?.material)}
                               </Text>
                             </View>
                           )}
                           {(item.analysis?.attributes?.style || item.attributes?.style) && (
                             <View className="bg-fuchsia-900/50 border border-fuchsia-500/30 px-2.5 py-1 rounded-lg">
                               <Text className="text-xs font-bold font-inter-bold text-fuchsia-300 capitalize">
-                                {item.analysis?.attributes?.style || item.attributes?.style}
+                                {formatLabel(item.analysis?.attributes?.style || item.attributes?.style)}
                               </Text>
                             </View>
                           )}
                           {((item.analysis?.visual_details?.pattern && item.analysis.visual_details.pattern !== 'plain') || (item.visual_details?.pattern && item.visual_details.pattern !== 'plain')) && (
                             <View className="bg-violet-900/50 border border-violet-500/30 px-2.5 py-1 rounded-lg">
                               <Text className="text-xs font-bold font-inter-bold text-violet-300 capitalize">
-                                {item.analysis?.visual_details?.pattern || item.visual_details?.pattern}
+                                {formatLabel(item.analysis?.visual_details?.pattern || item.visual_details?.pattern)}
                               </Text>
                             </View>
                           )}
                           {(item.analysis?.context?.formality || item.context?.formality) && (
                             <View className="bg-amber-900/50 border border-amber-500/30 px-2.5 py-1 rounded-lg">
                               <Text className="text-xs font-bold font-inter-bold text-amber-300 capitalize">
-                                {item.analysis?.context?.formality || item.context?.formality}
+                                {formatLabel(item.analysis?.context?.formality || item.context?.formality)}
                               </Text>
                             </View>
                           )}
                           {((item.analysis?.context?.seasons || item.context?.seasons || []).filter(s => s !== 'all_seasons').slice(0, 1)).map((season, idx) => (
                             <View key={idx} className="bg-emerald-900/50 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
                               <Text className="text-xs font-bold font-inter-bold text-emerald-300 capitalize">
-                                {season}
+                                {formatLabel(season)}
                               </Text>
                             </View>
                           ))}

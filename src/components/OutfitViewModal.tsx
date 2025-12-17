@@ -3,6 +3,7 @@ import { View, Text, Modal, ScrollView, Animated, TouchableOpacity, Image, Dimen
 import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import { WardrobeItem } from '../services/visionApi';
+import { formatLabel } from '../utils/textUtils';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.7;
@@ -122,10 +123,10 @@ export default function OutfitViewModal({
                                 <View className="flex-1 p-4 justify-between bg-zinc-800">
                                     <View>
                                         <Text className="text-white text-xl font-bold capitalize">
-                                            {item.analysis?.basic_info?.sub_category || item.basic_info?.sub_category || item.analysis?.basic_info?.category || item.basic_info?.category}
+                                            {formatLabel(item.analysis?.basic_info?.sub_category || item.basic_info?.sub_category || item.analysis?.basic_info?.category || item.basic_info?.category)}
                                         </Text>
                                         <Text className="text-zinc-400 text-sm capitalize mt-1">
-                                            {(item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color || 'Unknown Color')} • {(item.analysis?.context?.formality || item.context?.formality || 'Casual')}
+                                            {formatLabel(item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color || 'Unknown Color')} • {formatLabel(item.analysis?.context?.formality || item.context?.formality || 'Casual')}
                                         </Text>
                                     </View>
 

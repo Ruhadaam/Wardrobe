@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Modal, Image, ActivityIndicator, Alert } from 'react-native';
 import { stylistService, StylistSelection } from '../../services/stylistService';
 import { wardrobeService } from '../../services/wardrobeService';
+import { formatLabel } from '../../utils/textUtils';
 import OutfitViewModal from '../../components/OutfitViewModal';
 
 const { width } = Dimensions.get('window');
@@ -137,13 +138,7 @@ export default function OutfitPage() {
     });
   }, [items, selectedFilters]);
 
-  // Log filtered items whenever they change
-  useEffect(() => {
-    if (Object.values(selectedFilters).some(tags => tags.length > 0)) {
-      console.log("Filters changed. Matching Items:", filteredItems.length);
-      console.log("Filtered Data:", filteredItems);
-    }
-  }, [filteredItems, selectedFilters]);
+
 
   const handleGenerate = async () => {
     if (filteredItems.length === 0) {
@@ -155,8 +150,19 @@ export default function OutfitPage() {
     console.log(`Generating outfit with ${filteredItems.length} candidate items...`);
 
     try {
+      // Construct a detailed context from selected filters
+      const contextParts: string[] = [];
+      if (selectedFilters.season.length > 0) contextParts.push(`Season: ${selectedFilters.season.map(s => formatLabel(s)).join(', ')}`);
+      if (selectedFilters.formality.length > 0) contextParts.push(`Formality: ${selectedFilters.formality.map(f => formatLabel(f)).join(', ')}`);
+      if (selectedFilters.style.length > 0) contextParts.push(`Style: ${selectedFilters.style.map(s => formatLabel(s)).join(', ')}`);
+      if (selectedFilters.color.length > 0) contextParts.push(`Color Preference: ${selectedFilters.color.map(c => formatLabel(c)).join(', ')}`);
+
+      const contextString = contextParts.length > 0
+        ? `User Preferences: ${contextParts.join('; ')}. Create a cohesive outfit based on these requirements.`
+        : "Create a stylish and coordinated outfit.";
+
       // Call the stylist service with filtered items
-      const selection = await stylistService.generateOutfit(filteredItems, "User selected filters context");
+      const selection = await stylistService.generateOutfit(filteredItems, contextString);
 
       if (selection) {
         console.log("Stylist Selection:", selection);
@@ -217,7 +223,7 @@ export default function OutfitPage() {
         </Text>
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 130 }}>
 
         {/* Filter Groups */}
         {filterGroups.map((group) => (
@@ -232,21 +238,67 @@ export default function OutfitPage() {
             >
               {group.tags.map((tag) => {
                 const isSelected = selectedFilters[group.id].includes(tag);
+
+                // Icon Mapping Logic
+                let iconName: keyof typeof Ionicons.glyphMap | null = null;
+                let customColor: string | null = null;
+
+                if (group.id === 'season') {
+                  if (tag.includes('spring')) iconName = 'flower-outline';
+                  else if (tag.includes('summer')) iconName = 'sunny-outline';
+                  else if (tag.includes('autumn')) iconName = 'leaf-outline';
+                  else if (tag.includes('winter')) iconName = 'snow-outline';
+                  else iconName = 'earth-outline'; // All seasons
+                } else if (group.id === 'formality') {
+                  if (tag.includes('business')) iconName = 'briefcase-outline';
+                  else if (tag.includes('casual')) iconName = 'cafe-outline';
+                  else if (tag.includes('party')) iconName = 'wine-outline';
+                  else if (tag.includes('sport')) iconName = 'football-outline';
+                  else if (tag.includes('smart')) iconName = 'glasses-outline';
+                  else iconName = 'pricetag-outline';
+                } else if (group.id === 'style') {
+                  if (tag.includes('vintage')) iconName = 'time-outline';
+                  else if (tag.includes('street')) iconName = 'bicycle-outline';
+                  else if (tag.includes('classic')) iconName = 'ribbon-outline';
+                  else if (tag.includes('minimal')) iconName = 'remove-circle-outline';
+                  else iconName = 'shirt-outline';
+                } else if (group.id === 'color') {
+                  // Use specific colors for the dot
+                  const colorMap: Record<string, string> = {
+                    'black': '#000000', 'white': '#ffffff', 'grey': '#808080', 'blue': '#3b82f6',
+                    'red': '#ef4444', 'green': '#22c55e', 'beige': '#f5f5dc', 'brown': '#a52a2a', 'colorful': 'rainbow'
+                  };
+                  customColor = colorMap[tag.toLowerCase()] || '#cbd5e1';
+                }
+
                 return (
                   <TouchableOpacity
                     key={tag}
                     onPress={() => toggleFilter(group.id, tag)}
-                    className={`px-4 py-2.5 rounded-full border flex-row items-center gap-2 ${isSelected
-                      ? 'bg-indigo-500/20 border-indigo-400'
+                    className={`p-3 rounded-2xl border items-center justify-center gap-2 ${isSelected
+                      ? 'bg-cyan-500/20 border-cyan-500'
                       : 'bg-slate-800 border-slate-700'
                       }`}
+                    style={{ width: 100, height: 100 }} // Fixed square size for card look
                   >
-                    {isSelected && (
-                      <Ionicons name="checkmark" size={16} color="#818cf8" />
+
+                    {/* Color Circle for Color Category -> Larger for card view */}
+                    {group.id === 'color' && customColor && (
+                      <View className={`w-8 h-8 rounded-full border border-slate-600 mb-1 ${customColor === 'rainbow' ? 'bg-indigo-500' : ''}`} style={customColor !== 'rainbow' ? { backgroundColor: customColor } : {}} />
                     )}
-                    <Text className={`font-semibold font-inter-semibold capitalize ${isSelected ? 'text-indigo-300' : 'text-slate-400'
+
+                    {/* Icon for other categories -> Larger size */}
+                    {group.id !== 'color' && iconName && (
+                      <Ionicons
+                        name={isSelected ? (iconName.replace('-outline', '') as any) : iconName}
+                        size={32}
+                        color={isSelected ? "#06b6d4" : "#94a3b8"}
+                      />
+                    )}
+
+                    <Text className={`font-semibold font-inter-semibold text-xs text-center capitalize ${isSelected ? 'text-cyan-400' : 'text-slate-400'
                       }`}>
-                      {tag.replace(/_/g, ' ')}
+                      {formatLabel(tag)}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -255,7 +307,7 @@ export default function OutfitPage() {
           </View>
         ))}
 
-        {/* Removed "Your Model" Section as requested */}
+
 
         {/* Main Action Button - Now inside ScrollView */}
         <View className="px-6 mt-8 mb-8">
@@ -266,7 +318,9 @@ export default function OutfitPage() {
             disabled={isGenerating}
           >
             {isGenerating ? (
-              <ActivityIndicator color="white" />
+              <Text className="text-white font-bold font-inter-bold text-lg">
+                Creating...
+              </Text>
             ) : (
               <Text className="text-white font-bold font-inter-bold text-lg">
                 Create Outfit
@@ -346,7 +400,7 @@ export default function OutfitPage() {
         </View>
       )}
 
-      {loading && (
+      {(loading || isGenerating) && (
         <View className="absolute inset-0 bg-black/60 items-center justify-center z-50">
           <LottieView
             source={require("../../assets/animations/loading-2.json")}

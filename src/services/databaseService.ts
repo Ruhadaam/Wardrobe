@@ -4,13 +4,30 @@ import { WardrobeItem } from './visionApi';
 const DB_NAME = 'wardrobe.db';
 
 // Singleton instance to prevent multiple connections/race conditions
+// Singleton instance variable
 let dbInstance: SQLite.SQLiteDatabase | null = null;
+let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 const getDb = async () => {
-    if (!dbInstance) {
-        dbInstance = await SQLite.openDatabaseAsync(DB_NAME);
+    if (dbInstance) {
+        return dbInstance;
     }
-    return dbInstance;
+
+    if (!dbPromise) {
+        dbPromise = (async () => {
+            try {
+                const db = await SQLite.openDatabaseAsync(DB_NAME);
+                dbInstance = db;
+                return db;
+            } catch (error) {
+                // If init fails, reset promise so we can try again
+                dbPromise = null;
+                throw error;
+            }
+        })();
+    }
+
+    return dbPromise;
 };
 
 export const databaseService = {

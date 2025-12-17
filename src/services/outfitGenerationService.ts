@@ -63,9 +63,7 @@ export const outfitGenerationService = {
                 if (neutrals.length > 0) bottoms = neutrals;
                 else if (allBottoms.length > 0) bottoms = allBottoms;
             }
-            // -----------------------------
 
-            // -----------------------------
 
             if (tops.length === 0 || bottoms.length === 0) {
                 return {

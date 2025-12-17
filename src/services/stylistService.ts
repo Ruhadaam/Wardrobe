@@ -22,19 +22,43 @@ export const stylistService = {
         try {
             console.log(`Consulting Stylist with ${items.length} items`);
 
+            // Helper to remove empty keys
+            const cleanObj = (obj: any) => {
+                return Object.fromEntries(
+                    Object.entries(obj).filter(([_, v]) =>
+                        v != null &&
+                        v !== '' &&
+                        !(Array.isArray(v) && v.length === 0)
+                    )
+                );
+            };
+
             // Prepare lightweight payload with all relevant tags
-            const candidates = items.map(item => ({
-                id: item.item_id,
-                category: item.analysis?.basic_info?.category || item.basic_info?.category || 'unknown',
-                sub_category: item.analysis?.basic_info?.sub_category,
-                primary_color: item.analysis?.visual_details?.primary_color,
-                secondary_colors: item.analysis?.visual_details?.secondary_colors,
-                style: item.analysis?.attributes?.style,
-                season: item.analysis?.context?.seasons,
-                formality: item.analysis?.context?.formality,
-                material: item.analysis?.attributes?.material,
-                fit: item.analysis?.attributes?.fit
-            }));
+            const candidates = items.map(item => {
+                const raw = {
+                    id: item.item_id,
+                    // Combine category/subcategory for brevity: "top/tshirt"
+                    type: [
+                        item.analysis?.basic_info?.category || item.basic_info?.category,
+                        item.analysis?.basic_info?.sub_category || item.basic_info?.sub_category
+                    ].filter(Boolean).join('/'),
+
+                    // Colors
+                    colors: [
+                        item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color,
+                        ...(item.analysis?.visual_details?.secondary_colors || item.visual_details?.secondary_colors || [])
+                    ].filter(Boolean),
+
+                    // Key attributes
+                    style: item.analysis?.attributes?.style || item.attributes?.style,
+                    season: item.analysis?.context?.seasons || item.context?.seasons,
+                    formality: item.analysis?.context?.formality || item.context?.formality,
+                    fit: item.analysis?.attributes?.fit || item.attributes?.fit
+                };
+                return cleanObj(raw);
+            });
+
+            console.log(`[Stylist] Payload size: ${JSON.stringify(candidates).length} chars for ${candidates.length} items`);
 
             // Payload to send to Supabase Edge Function
             const payload = {

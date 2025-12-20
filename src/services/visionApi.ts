@@ -77,18 +77,23 @@ interface UploadAndAnalyzeOptions {
  * @param options - Opsiyonel state setter'lar ve alert gösterimi
  * @returns Analiz sonucu veya hata
  */
+interface EdgeFunctionResponse {
+  image_url: string;
+  analysis: any;
+  success: boolean;
+}
+
 export const uploadAndAnalyze = async (
   uri: string,
   options?: UploadAndAnalyzeOptions
-) => {
+): Promise<{ data: EdgeFunctionResponse | null; error: any }> => {
   const { setLoading, setResult, showAlert = true } = options || {};
 
   setLoading?.(true);
 
   try {
-    // 1. Görüntü Optimizasyonu
-    console.log('Orjinal fotoğraf:', uri);
-
+    // 1. Image Optimization (keeping it for faster upload to Edge Function)
+    // console.log('Orjinal fotoğraf:', uri); // Original line
     // Resmi resize ve compress et
     // 1024px genişlik/yükseklik yeterli kalitede analiz için, 
     // compress 0.7-0.8 ideal bir oran.
@@ -112,19 +117,43 @@ export const uploadAndAnalyze = async (
       type: 'image/jpeg',
     } as any); // TypeScript kullanıyorsanız 'as any' gerekebilir
 
-    // Edge Function'ı çağırma ('analyze-photo' fonksiyon ismimiz)
+    // Call Edge Function
     const { data, error } = await supabase.functions.invoke('analyze-photo', {
       body: formData,
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Edge Function Error detected:', error);
+      let errorMessage = error.message;
 
-    console.log('Vision Sonucu:', data);
+      if (error.context instanceof Response) {
+        try {
+          const text = await error.context.clone().text();
+          try {
+            const json = JSON.parse(text);
+            errorMessage = json.message || json.error || errorMessage;
+          } catch (jsonErr) {
+            // If not JSON, use raw text if it's reasonably short and not HTML
+            if (text && text.length < 500 && !text.includes('<html>')) {
+              errorMessage = text;
+            }
+          }
+        } catch (readErr) {
+          console.error('Failed to read error response:', readErr);
+        }
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    console.log('Vision API Data:', data);
     setResult?.(data);
 
-    return { data, error: null };
+    return { data: data as EdgeFunctionResponse, error: null };
   } catch (error: any) {
-    console.error('Hata:', error);
+    console.error('uploadAndAnalyze catch:', error);
+    // If it's already an error with a message we want, keep it. 
+    // Otherwise, ensure we return something useful.
     return { data: null, error };
   } finally {
     setLoading?.(false);
@@ -141,9 +170,15 @@ export const analyzeImage = async (uri: string): Promise<WardrobeItem> => {
     throw new Error(error?.message || 'Fotoğraf analiz edilemedi');
   }
 
-  // Edge Function zaten doğru formatta WardrobeItem döndürüyor
-  // Sadece direkt olarak döndürüyoruz
-  return data as WardrobeItem;
+  // Edge Function returns { image_url, analysis, success }
+  // We map it to WardrobeItem ensuring compatibility with both old and new formats
+  return {
+    analysis: data.analysis,
+    image_url: data.image_url,
+    item_id: '',
+    // Spread for top-level backward compatibility in WardrobePage/wardrobeService
+    ...(data.analysis || {})
+  } as WardrobeItem;
 };
 
 // Service objesi

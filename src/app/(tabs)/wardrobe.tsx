@@ -8,10 +8,11 @@ import {
   Dimensions,
   Alert,
   Platform,
+  Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
-import { MaterialIcons, Ionicons } from "@expo/vector-icons";
+import { MaterialIcons, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import LottieView from "lottie-react-native";
 import { visionService, WardrobeItem } from "../../services/visionApi"; // visionApi.ts'den import
@@ -51,6 +52,7 @@ export default function WardrobePage() {
   const [groupedItems, setGroupedItems] = useState<Record<string, WardrobeItem[]>>({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isPro, setIsPro] = useState<boolean | null>(null);
+  const [showSourceModal, setShowSourceModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -126,22 +128,41 @@ export default function WardrobePage() {
       return;
     }
 
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    setShowSourceModal(true);
+  };
+
+  const processImageSource = async (type: 'camera' | 'library') => {
+    setShowSourceModal(false);
+    let permissionResult;
+    if (type === 'library') {
+      permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    } else {
+      permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    }
+
     if (permissionResult.granted === false) {
       Toast.show({
         type: 'error',
         text1: 'Permission Required',
-        text2: 'You must grant access to the gallery to add clothes.',
+        text2: `You must grant access to the ${type === 'library' ? 'gallery' : 'camera'} to add clothes.`,
         position: 'top',
       });
       return;
     }
 
-    const pickerResult = await ImagePicker.launchImageLibraryAsync({
+    let pickerResult;
+    const options: ImagePicker.ImagePickerOptions = {
       mediaTypes: ['images'],
-      allowsEditing: false,
-      quality: 0.8, // Slightly reduced quality for faster uploads
-    });
+      allowsEditing: true, // This enables the editing step user requested
+      aspect: [1, 1], // Square aspect ratio for clean product shots
+      quality: 0.8,
+    };
+
+    if (type === 'library') {
+      pickerResult = await ImagePicker.launchImageLibraryAsync(options);
+    } else {
+      pickerResult = await ImagePicker.launchCameraAsync(options);
+    }
 
     if (pickerResult.canceled) {
       return;
@@ -150,7 +171,6 @@ export default function WardrobePage() {
     const imageUri = pickerResult.assets[0].uri;
 
     setIsAnalyzing(true);
-
     Toast.show({
       type: 'info',
       text1: 'Processing...',
@@ -160,20 +180,18 @@ export default function WardrobePage() {
     });
 
     try {
-      // 1. Analyze
+      // 1. Analyze and Background Removal
       const visionItem = await visionService.analyzeImage(imageUri);
 
-      // 2. Upload Image
-      const publicUrl = await wardrobeService.uploadImage(user.id, imageUri);
+      // Extract the processed image URL return from analysis
+      const publicUrl = visionItem.image_url;
 
-      // 3. Save to DB
+      // 2. Save to DB
       const savedItem = await wardrobeService.addItem(user.id, visionItem, publicUrl);
 
       // 4. Update UI
-      // Refresh global state
       await refreshItems();
 
-      // Construct newItem for Toast message logic only
       const newItem: WardrobeItem = {
         ...visionItem,
         item_id: savedItem.id,
@@ -194,14 +212,17 @@ export default function WardrobePage() {
         position: 'top',
         visibilityTime: 3000,
       });
-    } catch (error) {
-      console.error("Error occurred during process:", error);
+    } catch (error: any) {
+      console.error("Wardrobe Process Error:", error);
+
+      const errorMessage = error?.message || 'Technical error occurred. Please try again.';
+
       Toast.show({
         type: 'error',
-        text1: 'Oops! Something went wrong',
-        text2: 'Could not save the item. Please try again.',
+        text1: 'Oops!',
+        text2: errorMessage,
         position: 'top',
-        visibilityTime: 4000,
+        visibilityTime: 5000,
       });
     } finally {
       setIsAnalyzing(false);
@@ -486,6 +507,73 @@ export default function WardrobePage() {
           </View>
         </View>
       )}
+
+      {/* Custom Source Selection Action Sheet */}
+      <Modal
+        visible={showSourceModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSourceModal(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setShowSourceModal(false)}
+          className="flex-1 bg-black/60 justify-end"
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            className="bg-white rounded-t-[40px] px-6 pt-8 pb-10"
+          >
+            <View className="items-center mb-6">
+              <View className="w-12 h-1.5 bg-slate-200 rounded-full mb-6" />
+              <Text className="text-2xl font-black font-inter-black text-slate-900">Add New Item</Text>
+              <Text className="text-slate-500 font-medium font-inter-medium mt-1">Select where to get your photo from</Text>
+
+              {/* Guidance regarding human faces */}
+              <View className="flex-row items-center bg-amber-50 px-4 py-2.5 rounded-2xl mt-4 border border-amber-100">
+                <Ionicons name="alert-circle" size={20} color="#d97706" />
+                <Text className="text-amber-800 text-[11px] font-bold font-inter-bold ml-2 flex-1">
+                  Avoid human faces in your photos for better results and high quality analysis.
+                </Text>
+              </View>
+            </View>
+
+            <View className="flex-row justify-between gap-4">
+              <TouchableOpacity
+                onPress={() => processImageSource('camera')}
+                className="flex-1 bg-slate-50 border border-slate-100 rounded-[32px] p-6 items-center"
+                activeOpacity={0.7}
+              >
+                <View className="w-16 h-16 bg-[#3A1AEB]/10 rounded-full items-center justify-center mb-4">
+                  <MaterialCommunityIcons name="camera" size={32} color="#3A1AEB" />
+                </View>
+                <Text className="text-slate-900 font-black font-inter-black text-lg">Camera</Text>
+                <Text className="text-slate-400 text-xs font-bold mt-1">Take a photo</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => processImageSource('library')}
+                className="flex-1 bg-slate-50 border border-slate-100 rounded-[32px] p-6 items-center"
+                activeOpacity={0.7}
+              >
+                <View className="w-16 h-16 bg-blue-500/10 rounded-full items-center justify-center mb-4">
+                  <MaterialCommunityIcons name="image-multiple" size={32} color="#3b82f6" />
+                </View>
+                <Text className="text-slate-900 font-black font-inter-black text-lg">Gallery</Text>
+                <Text className="text-slate-400 text-xs font-bold mt-1">Choose existing</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => setShowSourceModal(false)}
+              className="mt-6 py-4 bg-slate-100 rounded-2xl items-center"
+              activeOpacity={0.7}
+            >
+              <Text className="text-slate-600 font-bold font-inter-bold text-base">Cancel</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }

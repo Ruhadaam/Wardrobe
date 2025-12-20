@@ -9,13 +9,13 @@ import Header from "../../components/Header";
 function IOSTabBar() {
   return (
     <NativeTabs
-      tintColor="#06b6d4"
+      tintColor="#3A1AEB"
       screenOptions={{
         headerShown: false,
       }}
     >
       <NativeTabs.Trigger name="wardrobe">
-        <Label>Wardrobe</Label>
+        <Label>wardrobe</Label>
         <Icon sf={{ default: 'tshirt', selected: 'tshirt.fill' }} />
       </NativeTabs.Trigger>
 
@@ -44,17 +44,19 @@ function AndroidTabBar() {
   const tabBarStyle = {
     position: 'absolute' as const,
     bottom: Math.max(bottom, 30),
-    backgroundColor: '#0f172a',
+    backgroundColor: '#ffffff',
     borderRadius: 30,
     borderTopWidth: 0,
     height: 60,
     elevation: 10,
-    shadowColor: '#06b6d4',
+    shadowColor: '#3A1AEB',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
     marginLeft: 20,
     marginRight: 20,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
   };
 
   const tabBarItemStyle = {
@@ -74,7 +76,7 @@ function AndroidTabBar() {
       screenOptions={{
         header: () => <Header />,
         headerShown: true,
-        tabBarActiveTintColor: '#06b6d4',
+        tabBarActiveTintColor: '#3A1AEB',
         tabBarInactiveTintColor: '#94a3b8',
         tabBarStyle,
         tabBarItemStyle,
@@ -84,9 +86,9 @@ function AndroidTabBar() {
       <Tabs.Screen
         name="wardrobe"
         options={{
-          title: "Wardrobe",
+          title: "wardrobe",
           tabBarIcon: ({ color, focused }) => (
-            <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-800' : ''}`}>
+            <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-50' : ''}`}>
               <MaterialCommunityIcons name={focused ? "wardrobe" : "wardrobe-outline"} size={24} color={color} />
             </View>
           ),
@@ -97,7 +99,7 @@ function AndroidTabBar() {
         options={{
           title: "Combine",
           tabBarIcon: ({ color, focused }) => (
-            <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-800' : ''}`}>
+            <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-50' : ''}`}>
               <MaterialIcons name="checkroom" size={24} color={color} />
             </View>
           ),
@@ -108,7 +110,7 @@ function AndroidTabBar() {
         options={{
           title: "History",
           tabBarIcon: ({ color, focused }) => (
-            <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-800' : ''}`}>
+            <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-50' : ''}`}>
               <MaterialIcons name="history" size={24} color={color} />
             </View>
           ),
@@ -119,7 +121,7 @@ function AndroidTabBar() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color, focused }) => (
-            <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-800' : ''}`}>
+            <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-50' : ''}`}>
               <MaterialIcons name={focused ? "person" : "person-outline"} size={24} color={color} />
             </View>
           ),

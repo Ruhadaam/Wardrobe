@@ -20,6 +20,8 @@ import { wardrobeService } from "../../services/wardrobeService";
 import { useAuth } from "../../providers/AuthProvider";
 import Header from "@/components/Header";
 import { useWardrobe } from "../../providers/WardrobeProvider";
+import { RevenueCatService } from "../../lib/revenuecat";
+import { useRouter } from "expo-router";
 
 
 
@@ -48,6 +50,17 @@ export default function WardrobePage() {
   const { items, loading: isLoading, refreshItems } = useWardrobe();
   const [groupedItems, setGroupedItems] = useState<Record<string, WardrobeItem[]>>({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isPro, setIsPro] = useState<boolean | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    checkSubscription();
+  }, [user]);
+
+  const checkSubscription = async () => {
+    const proStatus = await RevenueCatService.isPro();
+    setIsPro(proStatus);
+  };
 
   useEffect(() => {
     setGroupedItems(groupItemsByCategory(items));
@@ -98,6 +111,18 @@ export default function WardrobePage() {
   const handleAddItem = async () => {
     if (!user) {
       Toast.show({ type: 'error', text1: 'Please sign in to add items.' });
+      return;
+    }
+
+    if (isPro === false && items.length >= 20) {
+      Alert.alert(
+        "Wardrobe Limit Reached",
+        "Free accounts can have up to 20 items in their wardrobe. Upgrade to Pro for limitless storage!",
+        [
+          { text: "Later", style: "cancel" },
+          { text: "Upgrade to Pro", onPress: () => router.push('/paywall') }
+        ]
+      );
       return;
     }
 
@@ -189,42 +214,77 @@ export default function WardrobePage() {
 
 
   return (
-    <View className="flex-1 bg-slate-900" >
+    <View className="flex-1 bg-white" >
       {Platform.OS === 'ios' && <Header />}
-      <View className="px-5 pt-6 pb-5 bg-transparent ">
-        <View className="flex-row justify-between items-center mb-3">
+      <View className="px-5 pt-6 pb-2 bg-transparent ">
+        <View className="flex-row justify-between items-center mb-5">
           <View>
-            <Text className="text-4xl font-black font-inter-black text-white mb-1 tracking-tight shadow-cyan-500/50 shadow-lg">
+            <Text className="text-4xl font-black font-inter-black text-slate-900 mb-1 tracking-tight">
               Wardrobe
             </Text>
             <View className="flex-row items-center gap-2">
-              <View className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
-              <Text className="text-sm font-medium font-inter-medium text-slate-400">
+              <View className="h-2 w-2 rounded-full bg-[#3A1AEB]" />
+              <Text className="text-sm font-medium font-inter-medium text-slate-500">
                 {items.length} {items.length === 1 ? 'item' : 'items'}
               </Text>
             </View>
           </View>
           <TouchableOpacity
             onPress={handleAddItem}
-            className="flex-row items-center justify-center bg-cyan-500 rounded-2xl px-5 py-3.5"
+            className="flex-row items-center justify-center bg-[#3A1AEB] rounded-2xl px-5 py-3.5"
             activeOpacity={0.85}
             style={{
-              // iOS shadow
-              shadowColor: '#06b6d4',
-              shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.6,
-              shadowRadius: 15,
-              // Android shadow
-              elevation: 10,
-              // Glow effect simulation
-              borderWidth: 1,
-              borderColor: 'rgba(255, 255, 255, 0.3)',
+              shadowColor: '#3A1AEB',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 10,
+              elevation: 5,
             }}
           >
             <Ionicons name="add-circle" size={22} color="white" />
             <Text className="text-white font-bold font-inter-bold ml-2 text-base">New</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Plan Limit Bar */}
+        {isPro === false && (
+          <View
+            className="bg-white rounded-3xl p-5 mb-4 border border-slate-100"
+            style={{
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.05,
+              shadowRadius: 15,
+              elevation: 4,
+            }}
+          >
+            <View className="flex-row justify-between items-center mb-3">
+              <View className="flex-row items-center gap-2">
+                <View className="bg-[#3A1AEB]/10 p-2 rounded-xl">
+                  <Ionicons name="cloud-upload" size={18} color="#3A1AEB" />
+                </View>
+                <Text className="text-base font-bold font-inter-bold text-slate-800">Free Plan Limit</Text>
+              </View>
+              <View className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                <Text className="text-sm font-bold font-inter-bold text-slate-600">{items.length}/20</Text>
+              </View>
+            </View>
+
+            <View className="h-2.5 bg-slate-100 rounded-full overflow-hidden mb-4">
+              <View
+                className="h-full bg-[#3A1AEB] rounded-full"
+                style={{ width: `${Math.min((items.length / 20) * 100, 100)}%` }}
+              />
+            </View>
+
+            <View className="flex-row justify-between items-center">
+              <Text className="text-sm font-medium font-inter-medium text-slate-500">Need more space?</Text>
+              <TouchableOpacity onPress={() => router.push('/paywall')}>
+                <Text className="text-sm font-bold font-inter-bold text-[#3A1AEB]">Get Premium</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
 
       {/* Gardırop İçeriği */}
@@ -235,32 +295,30 @@ export default function WardrobePage() {
         {Object.keys(groupedItems).length === 0 && !isAnalyzing ? (
           <View className="flex-1 justify-center items-center px-6 mt-32">
             <View
-              className="w-32 h-32 rounded-full bg-slate-800 items-center justify-center mb-6 border border-slate-700"
+              className="w-32 h-32 rounded-full bg-slate-50 items-center justify-center mb-6 border border-slate-100"
               style={{
-                shadowColor: '#06b6d4',
-                shadowOffset: { width: 10, height: 0 },
-                shadowOpacity: 0.4,
+                shadowColor: '#3A1AEB',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.1,
                 shadowRadius: 20,
-                elevation: 10,
+                elevation: 5,
               }}
             >
-              <MaterialIcons name="checkroom" size={64} color="#22d3ee" />
+              <MaterialIcons name="checkroom" size={64} color="#3A1AEB" />
             </View>
-            <Text className="text-2xl font-bold font-inter-bold text-white mb-2">Your Wardrobe is Empty</Text>
-            <Text className="text-base text-slate-400 text-center leading-6">
+            <Text className="text-2xl font-bold font-inter-bold text-slate-900 mb-2">Your Wardrobe is Empty</Text>
+            <Text className="text-base text-slate-500 text-center leading-6">
               Start building a beautiful wardrobe{'\n'}by adding your first item!
             </Text>
             <TouchableOpacity
               onPress={handleAddItem}
-              className="mt-8 bg-cyan-500 rounded-xl px-6 py-3"
+              className="mt-8 bg-[#3A1AEB] rounded-xl px-6 py-3"
               style={{
-                // iOS shadow
-                shadowColor: '#06b6d4',
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.5,
-                shadowRadius: 10,
-                // Android shadow
-                elevation: 8,
+                shadowColor: '#3A1AEB',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 4,
               }}
             >
               <Text className="text-white font-semibold font-inter-semibold text-base">Add First Item</Text>
@@ -275,18 +333,18 @@ export default function WardrobePage() {
                     <View
                       className="h-8 w-1.5 rounded-full"
                       style={{
-                        backgroundColor: ['#22d3ee', '#e879f9', '#34d399', '#facc15'][categoryIndex % 4],
-                        shadowColor: ['#22d3ee', '#e879f9', '#34d399', '#facc15'][categoryIndex % 4],
+                        backgroundColor: ['#3A1AEB', '#8B5CF6', '#EC4899', '#10B981'][categoryIndex % 4],
+                        shadowColor: ['#3A1AEB', '#8B5CF6', '#EC4899', '#10B981'][categoryIndex % 4],
                         shadowOffset: { width: 0, height: 0 },
                         shadowOpacity: 0.8,
                         shadowRadius: 10,
                         elevation: 6,
                       }}
                     />
-                    <Text className="text-2xl font-black font-inter-black text-white tracking-tight shadow-sm">{formatLabel(category)}</Text>
+                    <Text className="text-2xl font-black font-inter-black text-slate-900 tracking-tight">{formatLabel(category)}</Text>
                   </View>
-                  <View className="bg-slate-800 border border-slate-700 rounded-full px-3 py-1.5 shadow-sm">
-                    <Text className="text-xs font-bold font-inter-bold text-slate-300">
+                  <View className="bg-slate-100 border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <Text className="text-xs font-bold font-inter-bold text-slate-600">
                       {categoryItems.length} {categoryItems.length === 1 ? 'item' : 'items'}
                     </Text>
                   </View>
@@ -299,17 +357,17 @@ export default function WardrobePage() {
                   {categoryItems.map((item, index) => (
                     <TouchableOpacity
                       key={item.item_id}
-                      className="rounded-3xl overflow-hidden bg-slate-800 m-2"
+                      className="rounded-3xl overflow-hidden bg-white m-2"
                       style={{
                         width: itemWidth,
                         marginRight: index < categoryItems.length - 1 ? gapBetweenItems : 0,
                         borderWidth: 1,
-                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderColor: '#f8fafc',
                         // Enhanced shadow for premium feel
                         shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 8 },
-                        shadowOpacity: 0.3,
-                        shadowRadius: 12,
+                        shadowOffset: { width: 0, height: 12 },
+                        shadowOpacity: 0.08,
+                        shadowRadius: 16,
                         elevation: 6,
                       }}
                       activeOpacity={0.9}
@@ -340,50 +398,50 @@ export default function WardrobePage() {
                         </TouchableOpacity>
                       </View>
 
-                      <View className="p-4 bg-slate-800">
-                        <Text className="text-lg font-bold font-inter-bold text-white mb-2" numberOfLines={1}>
+                      <View className="p-4 bg-white">
+                        <Text className="text-lg font-bold font-inter-bold text-slate-900 mb-2" numberOfLines={1}>
                           {formatLabel(item.analysis?.basic_info?.sub_category || item.basic_info?.sub_category || item.classification?.sub_category || 'Clothing')}
                         </Text>
 
                         <View className="flex-row flex-wrap gap-1.5">
                           {(item.analysis?.attributes?.material || item.attributes?.material) && (
-                            <View className="bg-cyan-900/50 border border-cyan-500/30 px-2.5 py-1 rounded-lg">
-                              <Text className="text-xs font-bold font-inter-bold text-cyan-300 capitalize">
+                            <View className="bg-[#3A1AEB]/10 border border-[#3A1AEB]/20 px-2.5 py-1 rounded-lg">
+                              <Text className="text-xs font-bold font-inter-bold text-[#3A1AEB] capitalize">
                                 {formatLabel(item.analysis?.attributes?.material || item.attributes?.material)}
                               </Text>
                             </View>
                           )}
                           {(item.analysis?.attributes?.style || item.attributes?.style) && (
-                            <View className="bg-fuchsia-900/50 border border-fuchsia-500/30 px-2.5 py-1 rounded-lg">
-                              <Text className="text-xs font-bold font-inter-bold text-fuchsia-300 capitalize">
+                            <View className="bg-fuchsia-100 border border-fuchsia-200 px-2.5 py-1 rounded-lg">
+                              <Text className="text-xs font-bold font-inter-bold text-fuchsia-600 capitalize">
                                 {formatLabel(item.analysis?.attributes?.style || item.attributes?.style)}
                               </Text>
                             </View>
                           )}
                           {((item.analysis?.visual_details?.pattern && item.analysis.visual_details.pattern !== 'plain') || (item.visual_details?.pattern && item.visual_details.pattern !== 'plain')) && (
-                            <View className="bg-violet-900/50 border border-violet-500/30 px-2.5 py-1 rounded-lg">
-                              <Text className="text-xs font-bold font-inter-bold text-violet-300 capitalize">
+                            <View className="bg-violet-100 border border-violet-200 px-2.5 py-1 rounded-lg">
+                              <Text className="text-xs font-bold font-inter-bold text-violet-600 capitalize">
                                 {formatLabel(item.analysis?.visual_details?.pattern || item.visual_details?.pattern)}
                               </Text>
                             </View>
                           )}
                           {(item.analysis?.context?.formality || item.context?.formality) && (
-                            <View className="bg-amber-900/50 border border-amber-500/30 px-2.5 py-1 rounded-lg">
-                              <Text className="text-xs font-bold font-inter-bold text-amber-300 capitalize">
+                            <View className="bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg">
+                              <Text className="text-xs font-bold font-inter-bold text-amber-600 capitalize">
                                 {formatLabel(item.analysis?.context?.formality || item.context?.formality)}
                               </Text>
                             </View>
                           )}
                           {((item.analysis?.context?.seasons || item.context?.seasons || []).filter(s => s !== 'all_seasons').slice(0, 1)).map((season, idx) => (
-                            <View key={idx} className="bg-emerald-900/50 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
-                              <Text className="text-xs font-bold font-inter-bold text-emerald-300 capitalize">
+                            <View key={idx} className="bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                              <Text className="text-xs font-bold font-inter-bold text-emerald-600 capitalize">
                                 {formatLabel(season)}
                               </Text>
                             </View>
                           ))}
                           {(item.analysis?.context?.seasons || item.context?.seasons || []).includes('all_seasons') && (
-                            <View className="bg-emerald-900/50 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
-                              <Text className="text-xs font-bold font-inter-bold text-emerald-300 capitalize">
+                            <View className="bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                              <Text className="text-xs font-bold font-inter-bold text-emerald-600 capitalize">
                                 All Seasons
                               </Text>
                             </View>
@@ -406,13 +464,13 @@ export default function WardrobePage() {
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.85)' }}
         >
           <View
-            className="bg-slate-800 rounded-3xl p-8 items-center mx-8 border border-slate-700"
+            className="bg-white rounded-3xl p-8 items-center mx-8 border border-slate-100"
             style={{
-              shadowColor: '#06b6d4',
-              shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.5,
+              shadowColor: '#3A1AEB',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.1,
               shadowRadius: 30,
-              elevation: 20,
+              elevation: 10,
             }}
           >
             <LottieView
@@ -421,8 +479,8 @@ export default function WardrobePage() {
               loop
               style={{ width: 140, height: 140 }}
             />
-            <Text className="text-white font-black font-inter-black text-xl mt-2">Analyzing Outfit</Text>
-            <Text className="text-slate-400 text-sm mt-2 text-center leading-relaxed px-2">
+            <Text className="text-slate-900 font-black font-inter-black text-xl mt-2">Analyzing Outfit</Text>
+            <Text className="text-slate-500 text-sm mt-2 text-center leading-relaxed px-2">
               AI is analyzing your outfit...
             </Text>
           </View>

@@ -37,7 +37,7 @@ export default function OutfitViewModal({
             visible={visible}
             onRequestClose={onClose}
         >
-            <View className="flex-1 bg-zinc-900/95 justify-center items-center">
+            <View className="flex-1 bg-white/95 justify-center items-center">
 
                 {visible && confetti && animationSource && (
                     <View className="absolute inset-0 w-full h-full z-20 pointer-events-none" pointerEvents="none">
@@ -52,11 +52,11 @@ export default function OutfitViewModal({
                 )}
 
                 <View className="absolute top-20 left-0 right-0 items-center z-10">
-                    <Text className="text-white text-xl font-bold font-inter-bold opacity-80">
-                        Top Picks For You
+                    <Text className="text-slate-900 text-2xl font-black font-inter-black tracking-tight">
+                        Perfect Match!
                     </Text>
-                    <Text className="text-zinc-400 text-sm font-inter">
-                        Swipe to see details
+                    <Text className="text-slate-500 text-sm font-inter-medium mt-1">
+                        Swipe to explore your outfit
                     </Text>
                 </View>
 
@@ -111,29 +111,34 @@ export default function OutfitViewModal({
                                     height: CARD_HEIGHT,
                                     marginHorizontal: 10,
                                     transform: [{ scale }],
-                                    opacity
+                                    opacity,
+                                    shadowColor: '#000',
+                                    shadowOffset: { width: 0, height: 12 },
+                                    shadowOpacity: 0.1,
+                                    shadowRadius: 16,
+                                    elevation: 8,
                                 }}
-                                className="bg-zinc-800 rounded-3xl overflow-hidden shadow-2xl border border-zinc-700/50"
+                                className="bg-white rounded-[40px] overflow-hidden border border-slate-100"
                             >
                                 <Image
                                     source={{ uri: item.image_url }}
                                     className="w-full h-3/4"
                                     resizeMode="cover"
                                 />
-                                <View className="flex-1 p-4 justify-between bg-zinc-800">
+                                <View className="flex-1 p-6 justify-between bg-white">
                                     <View>
-                                        <Text className="text-white text-xl font-bold capitalize">
+                                        <Text className="text-slate-900 text-2xl font-black font-inter-black capitalize">
                                             {formatLabel(item.analysis?.basic_info?.sub_category || item.basic_info?.sub_category || item.analysis?.basic_info?.category || item.basic_info?.category)}
                                         </Text>
-                                        <Text className="text-zinc-400 text-sm capitalize mt-1">
+                                        <Text className="text-slate-500 text-base font-inter-medium capitalize mt-1">
                                             {formatLabel(item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color || 'Unknown Color')} • {formatLabel(item.analysis?.context?.formality || item.context?.formality || 'Casual')}
                                         </Text>
                                     </View>
 
-                                    <View className="flex-row items-center space-x-2">
-                                        <View className="bg-cyan-500/20 px-3 py-1 rounded-full">
-                                            <Text className="text-cyan-400 text-xs font-bold uppercase tracking-wider">
-                                                Selected
+                                    <View className="flex-row items-center">
+                                        <View className="bg-[#3A1AEB]/10 px-4 py-2 rounded-2xl">
+                                            <Text className="text-[#3A1AEB] text-xs font-black font-inter-black uppercase tracking-widest">
+                                                SELECTED ITEM
                                             </Text>
                                         </View>
                                     </View>
@@ -146,11 +151,12 @@ export default function OutfitViewModal({
                 {/* Close / Action Button */}
                 <TouchableOpacity
                     onPress={onClose}
-                    className="absolute bottom-12 bg-white px-8 py-4 rounded-full shadow-xl flex-row items-center space-x-2"
+                    className="absolute bottom-12 bg-[#3A1AEB] px-10 py-5 rounded-[24px] shadow-2xl flex-row items-center"
+                    style={{ shadowColor: '#3A1AEB', shadowOpacity: 0.3, shadowRadius: 15 }}
                     activeOpacity={0.9}
                 >
-                    <Ionicons name="sparkles" size={20} color="black" />
-                    <Text className="text-black font-bold text-lg">Awesome!</Text>
+                    <Ionicons name="sparkles" size={20} color="white" />
+                    <Text className="text-white font-black font-inter-black text-lg ml-3">PERFECT!</Text>
                 </TouchableOpacity>
 
             </View>

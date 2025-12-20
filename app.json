@@ -1,37 +1,67 @@
 {
-  "scheme": "acme",
-  "userInterfaceStyle": "automatic",
-  "orientation": "default",
-  "web": {
-    "output": "static"
-  },
-  "plugins": [
-    "expo-dev-client",
-    [
-      "expo-router",
-      {
-        "origin": "https://n"
-      }
-    ],
-    "expo-sqlite"
-  ],
-  "name": "Wardrobe",
-  "slug": "Wardrobe",
-  "android": {
-    "package": "com.driverchat.Wardrobe"
-  },
-  "ios": {
-    "bundleIdentifier": "com.driverchat.Wardrobe",
-    "infoPlist": {
-      "ITSAppUsesNonExemptEncryption": false
-    }
-  },
-  "extra": {
-    "router": {
-      "origin": "https://n"
+  "expo": {
+    "name": "Ornatus",
+    "slug": "ornatus",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "ornatus",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
     },
-    "eas": {
-      "projectId": "3b5fa52d-a9fa-470e-9bdd-629eec8c89a6"
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ruhadam.Ornatus",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Wardrobe needs access to your photo library to import clothes into your closet."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.ruhadam.Ornatus",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you pick wardrobe items."
+        }
+      ],
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": "https://n"
+      },
+      "eas": {
+        "projectId": "920bfa4e-e318-468d-9ad3-3ebb6c91d9e2"
+      }
     }
   }
 }

@@ -16,6 +16,7 @@ import OutfitViewModal from '../../components/OutfitViewModal';
 
 const { width } = Dimensions.get('window');
 import { useRouter } from 'expo-router';
+import { RevenueCatService } from '../../lib/revenuecat';
 
 // Define available filter categories
 type FilterCategory = 'season' | 'formality' | 'style' | 'color';
@@ -27,17 +28,49 @@ interface FilterGroup {
 }
 
 const DEFAULT_FILTER_GROUPS: FilterGroup[] = [
-  { id: 'season', label: 'Season', tags: ['All Seasons', 'spring', 'summer', 'autumn', 'winter'] },
-  { id: 'formality', label: 'Formality', tags: ['casual', 'formal', 'smart_casual', 'business', 'party', 'sport'] },
-  { id: 'style', label: 'Style', tags: ['basic', 'vintage', 'streetwear', 'classic', 'boho', 'minimalist'] },
-  { id: 'color', label: 'Color', tags: ['black', 'white', 'grey', 'blue', 'red', 'green', 'beige', 'brown', 'colorful'] },
+  { id: 'season', label: 'SEASON', tags: ['Spring', 'Summer', 'Autumn', 'Winter', 'All Seasons'] },
+  { id: 'style', label: 'STYLE', tags: ['Modern', 'Streetwear', 'Casual', 'Classic'] },
+  { id: 'color' as any, label: 'COLOR TONE', tags: ['Any', 'Black', 'White', 'Blue', 'Red', 'Beige', 'Grey'] },
 ];
+
+const STYLE_IMAGES: Record<string, string> = {
+  'Modern': 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=500&auto=format&fit=crop',
+  'Streetwear': 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=80&w=500&auto=format&fit=crop',
+  'Casual': 'https://images.unsplash.com/photo-1543076447-215ad9ba6923?q=80&w=500&auto=format&fit=crop',
+  'Classic': 'https://images.unsplash.com/photo-1507679799987-c73774573b0a?q=80&w=500&auto=format&fit=crop',
+};
+
+const COLOR_MAP: Record<string, string> = {
+  'Black': '#000000',
+  'White': '#FFFFFF',
+  'Blue': '#3A1AEB',
+  'Red': '#EF4444',
+  'Beige': '#F5F5DC',
+  'Grey': '#808080',
+};
 
 export default function OutfitPage() {
   const { top } = useSafeAreaInsets();
   const { user } = useAuth();
   const { items, loading } = useWardrobe(); // Use global state
   const router = useRouter();
+
+  const [isPro, setIsPro] = useState<boolean | null>(null);
+  const [todayOutfitCount, setTodayOutfitCount] = useState<number>(0);
+
+  useEffect(() => {
+    checkSubscription();
+  }, [user]);
+
+  const checkSubscription = async () => {
+    const proStatus = await RevenueCatService.isPro();
+    setIsPro(proStatus);
+
+    if (!proStatus && user?.id) {
+      const count = await wardrobeService.getTodayOutfitCount(user.id);
+      setTodayOutfitCount(count);
+    }
+  };
 
   // State for all available tags grouped by category
   const [filterGroups, setFilterGroups] = useState<FilterGroup[]>(DEFAULT_FILTER_GROUPS);
@@ -86,55 +119,37 @@ export default function OutfitPage() {
   };
 
   const filteredItems = React.useMemo(() => {
-    // If no filters at all, show total
     const hasAnyFilter = Object.values(selectedFilters).some(tags => tags.length > 0);
     if (!hasAnyFilter) return items;
 
     return items.filter(item => {
-      // Check filtering for each category
-      // Logic: OR (Union) between categories. If item matches ANY selected filter from ANY category, it passes.
-
       // 1. Season
       if (selectedFilters.season.length > 0) {
         const itemSeasons = (item.analysis?.context?.seasons || item.context?.seasons || []).map((s: string) => s.toLowerCase());
-
-        // Match if one of the selected tags matches item season OR if item is 'all seasons'
-        // Match if one of the selected tags matches item season
-        // Special handling for "All Seasons" vs "All Season" mismatch
         const hasMatch = selectedFilters.season.some(tag => {
           const lowerTag = tag.toLowerCase();
-          if (lowerTag === 'all seasons' || lowerTag === 'all_seasons') {
-            return itemSeasons.includes('all seasons') || itemSeasons.includes('all season') || itemSeasons.includes('all_seasons') || itemSeasons.includes('all_season');
-          }
           return itemSeasons.includes(lowerTag) || itemSeasons.includes(lowerTag.replace(' ', '_'));
         });
-
-        // Always include "All Seasons" items regardless of specific season filter
         const isAllSeasonsItem = itemSeasons.includes('all seasons') || itemSeasons.includes('all season') || itemSeasons.includes('all_seasons') || itemSeasons.includes('all_season');
-
-        if (hasMatch || isAllSeasonsItem) return true;
+        if (!hasMatch && !isAllSeasonsItem) return false;
       }
 
-      // 2. Formality
-      if (selectedFilters.formality.length > 0) {
-        const val = (item.analysis?.context?.formality || item.context?.formality || '').toLowerCase();
-        if (selectedFilters.formality.includes(val)) return true;
-      }
-
-      // 3. Style
+      // 2. Style
       if (selectedFilters.style.length > 0) {
         const val = (item.analysis?.attributes?.style || item.attributes?.style || '').toLowerCase();
-        if (selectedFilters.style.includes(val)) return true;
+        if (!selectedFilters.style.some(s => s.toLowerCase() === val)) return false;
       }
 
-      // 4. Color
-      if (selectedFilters.color.length > 0) {
-        const val = (item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color || '').toLowerCase();
-        if (selectedFilters.color.includes(val)) return true;
+      // 4. Color Tone
+      if (selectedFilters['color' as any]?.length > 0) {
+        const selectedColor = selectedFilters['color' as any][0].toLowerCase();
+        if (selectedColor !== 'any') {
+          const itemColor = (item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color || '').toLowerCase();
+          if (itemColor !== selectedColor) return false;
+        }
       }
 
-      // If it didn't match any active filter, return false
-      return false;
+      return true;
     });
   }, [items, selectedFilters]);
 
@@ -146,6 +161,18 @@ export default function OutfitPage() {
       return;
     }
 
+    if (isPro === false && todayOutfitCount >= 2) {
+      Alert.alert(
+        "Daily Limit Reached",
+        "Free accounts have a limit of 2 outfits per day. Upgrade to Pro for limitless creations!",
+        [
+          { text: "Later", style: "cancel" },
+          { text: "Upgrade to Pro", onPress: () => router.push('/paywall') }
+        ]
+      );
+      return;
+    }
+
     setIsGenerating(true);
     console.log(`Generating outfit with ${filteredItems.length} candidate items...`);
 
@@ -153,7 +180,6 @@ export default function OutfitPage() {
       // Construct a detailed context from selected filters
       const contextParts: string[] = [];
       if (selectedFilters.season.length > 0) contextParts.push(`Season: ${selectedFilters.season.map(s => formatLabel(s)).join(', ')}`);
-      if (selectedFilters.formality.length > 0) contextParts.push(`Formality: ${selectedFilters.formality.map(f => formatLabel(f)).join(', ')}`);
       if (selectedFilters.style.length > 0) contextParts.push(`Style: ${selectedFilters.style.map(s => formatLabel(s)).join(', ')}`);
       if (selectedFilters.color.length > 0) contextParts.push(`Color Preference: ${selectedFilters.color.map(c => formatLabel(c)).join(', ')}`);
 
@@ -211,15 +237,15 @@ export default function OutfitPage() {
   };
 
   return (
-    <View className="flex-1 bg-slate-900">
+    <View className="flex-1 bg-white">
       {Platform.OS === 'ios' && <Header />}
 
       <View className="px-6 pt-6 pb-4">
-        <Text className="text-4xl font-black font-inter-black text-white mb-1 tracking-tight shadow-cyan-500/50 shadow-lg">
-          Combine
+        <Text className="text-3xl font-black font-inter-black text-slate-900 mb-1 tracking-tight">
+          Outfit Preferences
         </Text>
-        <Text className="text-sm font-medium font-inter-medium text-slate-400">
-          Filter your wardrobe to create outfits
+        <Text className="text-base font-medium font-inter-medium text-slate-500">
+          How do you want to look today?
         </Text>
       </View>
 
@@ -227,83 +253,138 @@ export default function OutfitPage() {
 
         {/* Filter Groups */}
         {filterGroups.map((group) => (
-          <View key={group.id} className="mb-6">
-            <Text className="px-6 text-lg font-bold font-inter-bold text-slate-300 mb-3 ml-1">
-              {group.label}
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 24, gap: 10 }}
-            >
-              {group.tags.map((tag) => {
-                const isSelected = selectedFilters[group.id].includes(tag);
-
-                // Icon Mapping Logic
-                let iconName: keyof typeof Ionicons.glyphMap | null = null;
-                let customColor: string | null = null;
-
-                if (group.id === 'season') {
-                  if (tag.includes('spring')) iconName = 'flower-outline';
-                  else if (tag.includes('summer')) iconName = 'sunny-outline';
-                  else if (tag.includes('autumn')) iconName = 'leaf-outline';
-                  else if (tag.includes('winter')) iconName = 'snow-outline';
-                  else iconName = 'earth-outline'; // All seasons
-                } else if (group.id === 'formality') {
-                  if (tag.includes('business')) iconName = 'briefcase-outline';
-                  else if (tag.includes('casual')) iconName = 'cafe-outline';
-                  else if (tag.includes('party')) iconName = 'wine-outline';
-                  else if (tag.includes('sport')) iconName = 'football-outline';
-                  else if (tag.includes('smart')) iconName = 'glasses-outline';
-                  else iconName = 'pricetag-outline';
-                } else if (group.id === 'style') {
-                  if (tag.includes('vintage')) iconName = 'time-outline';
-                  else if (tag.includes('street')) iconName = 'bicycle-outline';
-                  else if (tag.includes('classic')) iconName = 'ribbon-outline';
-                  else if (tag.includes('minimal')) iconName = 'remove-circle-outline';
-                  else iconName = 'shirt-outline';
-                } else if (group.id === 'color') {
-                  // Use specific colors for the dot
-                  const colorMap: Record<string, string> = {
-                    'black': '#000000', 'white': '#ffffff', 'grey': '#808080', 'blue': '#3b82f6',
-                    'red': '#ef4444', 'green': '#22c55e', 'beige': '#f5f5dc', 'brown': '#a52a2a', 'colorful': 'rainbow'
-                  };
-                  customColor = colorMap[tag.toLowerCase()] || '#cbd5e1';
+          <View key={group.id} className="mb-8">
+            <View className="px-6 flex-row items-center gap-2 mb-4">
+              <Ionicons
+                name={
+                  group.id === 'season' ? 'cloudy-night-outline' :
+                    group.id === 'style' ? 'shirt-outline' :
+                      'color-palette-outline'
                 }
+                size={18}
+                color="#64748b"
+              />
+              <Text className="text-sm font-black font-inter-black text-slate-400 uppercase tracking-widest">
+                {group.label}
+              </Text>
+            </View>
 
-                return (
-                  <TouchableOpacity
-                    key={tag}
-                    onPress={() => toggleFilter(group.id, tag)}
-                    className={`p-3 rounded-2xl border items-center justify-center gap-2 ${isSelected
-                      ? 'bg-cyan-500/20 border-cyan-500'
-                      : 'bg-slate-800 border-slate-700'
-                      }`}
-                    style={{ width: 100, height: 100 }} // Fixed square size for card look
-                  >
+            {group.id === 'season' ? (
+              <View className="px-6 flex-row flex-wrap justify-between gap-y-4">
+                {group.tags.map((tag) => {
+                  const isSelected = selectedFilters[group.id].includes(tag);
+                  let iconName: any = 'sunny-outline';
+                  if (tag === 'Spring') iconName = 'flower-outline';
+                  else if (tag === 'Summer') iconName = 'sunny-outline';
+                  else if (tag === 'Autumn') iconName = 'leaf-outline';
+                  else if (tag === 'Winter') iconName = 'snow-outline';
+                  else if (tag === 'All Seasons') iconName = 'infinite-outline';
 
-                    {/* Color Circle for Color Category -> Larger for card view */}
-                    {group.id === 'color' && customColor && (
-                      <View className={`w-8 h-8 rounded-full border border-slate-600 mb-1 ${customColor === 'rainbow' ? 'bg-indigo-500' : ''}`} style={customColor !== 'rainbow' ? { backgroundColor: customColor } : {}} />
-                    )}
-
-                    {/* Icon for other categories -> Larger size */}
-                    {group.id !== 'color' && iconName && (
-                      <Ionicons
-                        name={isSelected ? (iconName.replace('-outline', '') as any) : iconName}
-                        size={32}
-                        color={isSelected ? "#06b6d4" : "#94a3b8"}
+                  return (
+                    <TouchableOpacity
+                      key={tag}
+                      onPress={() => toggleFilter(group.id, tag)}
+                      className={`flex-row items-center bg-white rounded-2xl border-2 p-4 ${isSelected ? 'border-[#3A1AEB]' : 'border-slate-100'
+                        }`}
+                      style={{
+                        width: tag === 'All Seasons' ? '100%' : '48%',
+                        shadowColor: isSelected ? '#3A1AEB' : '#000',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: isSelected ? 0.1 : 0.05,
+                        shadowRadius: 10,
+                        elevation: 2
+                      }}
+                    >
+                      <View className={`w-12 h-12 rounded-xl items-center justify-center mr-3 ${isSelected ? 'bg-[#3A1AEB]/10' : 'bg-slate-50'}`}>
+                        <Ionicons name={iconName} size={24} color={isSelected ? "#3A1AEB" : "#64748b"} />
+                      </View>
+                      <Text className={`font-bold font-inter-bold text-base ${isSelected ? 'text-[#3A1AEB]' : 'text-slate-700'}`}>
+                        {tag}
+                      </Text>
+                      {isSelected && (
+                        <View className="absolute top-3 right-3 w-2 h-2 rounded-full bg-[#3A1AEB]" />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : group.id === 'style' ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 12, gap: 16 }}
+              >
+                {group.tags.map((tag) => {
+                  const isSelected = selectedFilters[group.id].includes(tag);
+                  return (
+                    <TouchableOpacity
+                      key={tag}
+                      onPress={() => toggleFilter(group.id, tag)}
+                      className="rounded-3xl overflow-hidden border-2"
+                      style={{
+                        width: 160,
+                        height: 100,
+                        borderColor: isSelected ? '#3A1AEB' : 'transparent',
+                      }}
+                    >
+                      <Image
+                        source={{ uri: STYLE_IMAGES[tag] || 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?q=80&w=500&auto=format&fit=crop' }}
+                        className="w-full h-full"
+                        resizeMode="cover"
                       />
-                    )}
+                      <View className="absolute inset-0 bg-black/40 p-4 justify-end">
+                        <Text className="text-white font-bold font-inter-bold text-lg">{tag}</Text>
+                      </View>
+                      {isSelected && (
+                        <View className="absolute top-2 right-2 bg-[#3A1AEB] rounded-full p-1">
+                          <Ionicons name="checkmark" size={12} color="white" />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 12, gap: 20 }}
+              >
+                {group.tags.map((tag) => {
+                  const isSelected = selectedFilters[group.id].includes(tag);
+                  const colorCode = COLOR_MAP[tag];
 
-                    <Text className={`font-semibold font-inter-semibold text-xs text-center capitalize ${isSelected ? 'text-cyan-400' : 'text-slate-400'
-                      }`}>
-                      {formatLabel(tag)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+                  return (
+                    <View key={tag} className="items-center gap-2">
+                      <TouchableOpacity
+                        onPress={() => toggleFilter(group.id, tag)}
+                        className={`w-14 h-14 rounded-full items-center justify-center border-2 ${isSelected ? 'border-[#3A1AEB]' : 'border-slate-100'
+                          }`}
+                        style={{
+                          backgroundColor: tag === 'Any' ? 'transparent' : colorCode,
+                          padding: isSelected ? 3 : 0
+                        }}
+                      >
+                        {tag === 'Any' ? (
+                          <View className="w-full h-full rounded-full bg-slate-50 items-center justify-center border border-slate-200">
+                            <Ionicons name="ban-outline" size={24} color="#64748b" />
+                          </View>
+                        ) : isSelected ? (
+                          <View className="w-full h-full rounded-full items-center justify-center" style={{ backgroundColor: colorCode }}>
+                            <Ionicons name="checkmark" size={24} color={tag === 'White' || tag === 'Beige' ? '#3A1AEB' : 'white'} />
+                          </View>
+                        ) : (
+                          <View className="w-full h-full rounded-full shadow-sm" style={{ backgroundColor: colorCode }} />
+                        )}
+                      </TouchableOpacity>
+                      <Text className={`text-xs font-bold font-inter-bold ${isSelected ? 'text-[#3A1AEB]' : 'text-slate-400'}`}>
+                        {tag}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            )}
           </View>
         ))}
 
@@ -312,18 +393,18 @@ export default function OutfitPage() {
         {/* Main Action Button - Now inside ScrollView */}
         <View className="px-6 mt-8 mb-8">
           <TouchableOpacity
-            className={`w-full py-4 rounded-2xl items-center justify-center shadow-lg ${isGenerating ? 'bg-slate-700' : 'bg-cyan-500 shadow-cyan-500/30'}`}
+            className={`w-full py-5 rounded-3xl items-center justify-center shadow-lg ${isGenerating ? 'bg-slate-700' : 'bg-[#3A1AEB] shadow-[#3A1AEB]/30'}`}
             activeOpacity={0.8}
             onPress={handleGenerate}
             disabled={isGenerating}
           >
             {isGenerating ? (
-              <Text className="text-white font-bold font-inter-bold text-lg">
-                Creating...
+              <Text className="text-white font-black font-inter-black text-lg">
+                CREATING...
               </Text>
             ) : (
-              <Text className="text-white font-bold font-inter-bold text-lg">
-                Create Outfit
+              <Text className="text-white font-black font-inter-black text-lg">
+                CREATE OUTFIT
               </Text>
             )}
           </TouchableOpacity>
@@ -341,17 +422,17 @@ export default function OutfitPage() {
 
       {/* Locked State Overlay */}
       {isLocked && !loading && (
-        <View className="absolute inset-0 bg-slate-900/95 z-40 items-center justify-center px-8">
-          <View className="bg-slate-800 p-8 rounded-3xl border border-slate-700 w-full items-center shadow-2xl">
-            <View className="w-20 h-20 bg-slate-700 rounded-full items-center justify-center mb-6">
-              <Ionicons name="lock-closed" size={40} color="#94a3b8" />
+        <View className="absolute inset-0 bg-white/95 z-40 items-center justify-center px-8">
+          <View className="bg-white p-8 rounded-[40px] border border-slate-100 w-full items-center shadow-2xl">
+            <View className="w-20 h-20 bg-slate-50 rounded-full items-center justify-center mb-6">
+              <Ionicons name="lock-closed" size={40} color="#3A1AEB" />
             </View>
 
-            <Text className="text-2xl font-black font-inter-black text-white text-center mb-3">
+            <Text className="text-2xl font-black font-inter-black text-slate-900 text-center mb-3">
               Unlock Stylist
             </Text>
 
-            <Text className="text-slate-400 text-center font-inter-medium mb-8 leading-6">
+            <Text className="text-slate-500 text-center font-inter-medium mb-8 leading-6">
               To create the best outfits, the AI stylist needs a bit more variety in your wardrobe.
             </Text>
 
@@ -359,14 +440,14 @@ export default function OutfitPage() {
               {/* Tops Progress */}
               <View>
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-slate-300 font-bold">Tops</Text>
-                  <Text className={topsCount >= 3 ? "text-green-400 font-bold" : "text-amber-400 font-bold"}>
+                  <Text className="text-slate-700 font-bold">Tops</Text>
+                  <Text className={topsCount >= 3 ? "text-emerald-500 font-bold" : "text-amber-500 font-bold"}>
                     {topsCount}/3
                   </Text>
                 </View>
-                <View className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                <View className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
                   <View
-                    className={`h-full rounded-full ${topsCount >= 3 ? 'bg-green-500' : 'bg-amber-500'}`}
+                    className={`h-full rounded-full ${topsCount >= 3 ? 'bg-emerald-500' : 'bg-amber-500'}`}
                     style={{ width: `${Math.min((topsCount / 3) * 100, 100)}%` }}
                   />
                 </View>
@@ -375,14 +456,14 @@ export default function OutfitPage() {
               {/* Bottoms Progress */}
               <View>
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-slate-300 font-bold">Bottoms</Text>
-                  <Text className={bottomsCount >= 3 ? "text-green-400 font-bold" : "text-amber-400 font-bold"}>
+                  <Text className="text-slate-700 font-bold">Bottoms</Text>
+                  <Text className={bottomsCount >= 3 ? "text-emerald-500 font-bold" : "text-amber-500 font-bold"}>
                     {bottomsCount}/3
                   </Text>
                 </View>
-                <View className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                <View className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
                   <View
-                    className={`h-full rounded-full ${bottomsCount >= 3 ? 'bg-green-500' : 'bg-amber-500'}`}
+                    className={`h-full rounded-full ${bottomsCount >= 3 ? 'bg-emerald-500' : 'bg-amber-500'}`}
                     style={{ width: `${Math.min((bottomsCount / 3) * 100, 100)}%` }}
                   />
                 </View>
@@ -390,11 +471,11 @@ export default function OutfitPage() {
             </View>
 
             <TouchableOpacity
-              className="w-full bg-cyan-500 py-4 rounded-xl flex-row items-center justify-center gap-2"
-              onPress={() => router.push('/(tabs)/')} // Assuming this goes to home/camera
+              className="w-full bg-[#3A1AEB] py-5 rounded-3xl flex-row items-center justify-center gap-2 shadow-lg shadow-[#3A1AEB]/20"
+              onPress={() => router.push('/wardrobe')}
             >
               <Ionicons name="add-circle-outline" size={24} color="white" />
-              <Text className="text-white font-bold font-inter-bold text-lg">Add Clothes</Text>
+              <Text className="text-white font-black font-inter-black text-lg text-white">ADD CLOTHES</Text>
             </TouchableOpacity>
           </View>
         </View>

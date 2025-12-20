@@ -3,7 +3,7 @@ import { Slot, useRouter, useSegments } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import Toast from "react-native-toast-message";
 
 import {
@@ -37,6 +37,11 @@ function InitialLayout() {
   useEffect(() => {
     if (loading) return;
 
+    // Initialize RevenueCat
+    import("../lib/revenuecat").then(({ RevenueCatService }) => {
+      RevenueCatService.init();
+    });
+
     if ((Platform.OS !== 'android' || fontsLoaded || fontError)) {
       SplashScreen.hideAsync();
     }
@@ -48,10 +53,8 @@ function InitialLayout() {
     const inAuthGroup = segments[0] === '(auth)';
 
     if (!session && !inAuthGroup) {
-      // Redirect to the sign-in page.
       router.replace('/(auth)/login');
     } else if (session && inAuthGroup) {
-      // Redirect away from the sign-in page.
       router.replace('/(tabs)/wardrobe');
     }
   }, [session, loading, segments]);

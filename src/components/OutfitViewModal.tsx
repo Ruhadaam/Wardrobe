@@ -118,11 +118,12 @@ export default function OutfitViewModal({
                                     shadowRadius: 16,
                                     elevation: 8,
                                 }}
-                                className="bg-white rounded-[40px] overflow-hidden border border-slate-100"
+                                className="bg-white rounded-[40px] m-10 overflow-hidden border border-slate-100"
                             >
                                 <Image
                                     source={{ uri: item.image_url }}
                                     className="w-full h-3/4"
+
                                     resizeMode="cover"
                                 />
                                 <View className="flex-1 p-6 justify-between bg-white">

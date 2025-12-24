@@ -29,15 +29,22 @@ interface FilterGroup {
 
 const DEFAULT_FILTER_GROUPS: FilterGroup[] = [
   { id: 'season', label: 'SEASON', tags: ['Spring', 'Summer', 'Autumn', 'Winter', 'All Seasons'] },
-  { id: 'style', label: 'STYLE', tags: ['Modern', 'Streetwear', 'Casual', 'Classic'] },
+  { id: 'style', label: 'STYLE', tags: ["casual", "smart_casual", "business_casual", "formal", "streetwear", "sport", "minimal", "bohemian", "vintage", "chic", "preppy"] },
   { id: 'color' as any, label: 'COLOR TONE', tags: ['Any', 'Black', 'White', 'Blue', 'Red', 'Beige', 'Grey'] },
 ];
 
 const STYLE_IMAGES: Record<string, string> = {
-  'Modern': 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=500&auto=format&fit=crop',
-  'Streetwear': 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=80&w=500&auto=format&fit=crop',
-  'Casual': 'https://images.unsplash.com/photo-1543076447-215ad9ba6923?q=80&w=500&auto=format&fit=crop',
-  'Classic': 'https://images.unsplash.com/photo-1507679799987-c73774573b0a?q=80&w=500&auto=format&fit=crop',
+  'casual': 'https://images.unsplash.com/photo-1543076447-215ad9ba6923?q=80&w=500&auto=format&fit=crop',
+  'smart_casual': 'https://images.unsplash.com/photo-1594932224030-940955d2c021?q=80&w=500&auto=format&fit=crop',
+  'business_casual': 'https://images.unsplash.com/photo-1593032465175-481ac7f401a0?q=80&w=500&auto=format&fit=crop',
+  'formal': 'https://images.unsplash.com/photo-1507679799987-c73774573b0a?q=80&w=500&auto=format&fit=crop',
+  'streetwear': 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=80&w=500&auto=format&fit=crop',
+  'sport': 'https://images.unsplash.com/photo-1483721310020-03333e577078?q=80&w=500&auto=format&fit=crop',
+  'minimal': 'https://images.unsplash.com/photo-1515347619252-60a4bd23dedc?q=80&w=500&auto=format&fit=crop',
+  'bohemian': 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=500&auto=format&fit=crop',
+  'vintage': 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?q=80&w=500&auto=format&fit=crop',
+  'chic': 'https://images.unsplash.com/photo-1539109139745-f600e6e2ff9d?q=80&w=500&auto=format&fit=crop',
+  'preppy': 'https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=500&auto=format&fit=crop',
 };
 
 const COLOR_MAP: Record<string, string> = {
@@ -333,7 +340,7 @@ export default function OutfitPage() {
                         resizeMode="cover"
                       />
                       <View className="absolute inset-0 bg-black/40 p-4 justify-end">
-                        <Text className="text-white font-bold font-inter-bold text-lg">{tag}</Text>
+                        <Text className="text-white font-bold font-inter-bold text-lg">{formatLabel(tag)}</Text>
                       </View>
                       {isSelected && (
                         <View className="absolute top-2 right-2 bg-[#3A1AEB] rounded-full p-1">

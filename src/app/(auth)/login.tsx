@@ -26,7 +26,7 @@ export default function Login() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             className="flex-1 bg-slate-900"
         >
-            <StatusBar style="light" />
+            <StatusBar style="dark" />
             <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
                 <View className="p-8 w-full max-w-md mx-auto">
 

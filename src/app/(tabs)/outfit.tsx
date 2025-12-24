@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Dimensions, Platform } from 'react-native';
+import Animated, { FadeInRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWardrobe } from '../../providers/WardrobeProvider';
 import { useAuth } from '../../providers/AuthProvider';
@@ -34,17 +35,17 @@ const DEFAULT_FILTER_GROUPS: FilterGroup[] = [
 ];
 
 const STYLE_IMAGES: Record<string, string> = {
-  'casual': 'https://images.unsplash.com/photo-1543076447-215ad9ba6923?q=80&w=500&auto=format&fit=crop',
-  'smart_casual': 'https://images.unsplash.com/photo-1594932224030-940955d2c021?q=80&w=500&auto=format&fit=crop',
-  'business_casual': 'https://images.unsplash.com/photo-1593032465175-481ac7f401a0?q=80&w=500&auto=format&fit=crop',
-  'formal': 'https://images.unsplash.com/photo-1507679799987-c73774573b0a?q=80&w=500&auto=format&fit=crop',
-  'streetwear': 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=80&w=500&auto=format&fit=crop',
-  'sport': 'https://images.unsplash.com/photo-1483721310020-03333e577078?q=80&w=500&auto=format&fit=crop',
-  'minimal': 'https://images.unsplash.com/photo-1515347619252-60a4bd23dedc?q=80&w=500&auto=format&fit=crop',
-  'bohemian': 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=500&auto=format&fit=crop',
-  'vintage': 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?q=80&w=500&auto=format&fit=crop',
-  'chic': 'https://images.unsplash.com/photo-1539109139745-f600e6e2ff9d?q=80&w=500&auto=format&fit=crop',
-  'preppy': 'https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=500&auto=format&fit=crop',
+  'casual': 'https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&q=80&w=500',
+  'smart_casual': 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&q=80&w=500',
+  'business_casual': 'https://images.unsplash.com/photo-1593032465175-481ac7f401a0?auto=format&fit=crop&q=80&w=500',
+  'formal': 'https://images.unsplash.com/photo-1593030761757-71fae45fa0e7?auto=format&fit=crop&q=80&w=500',
+  'streetwear': 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&q=80&w=500',
+  'sport': 'https://images.unsplash.com/photo-1483721310020-03333e577078?auto=format&fit=crop&q=80&w=500',
+  'minimal': 'https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&q=80&w=500',
+  'bohemian': 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=500',
+  'vintage': 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&q=80&w=500',
+  'chic': 'https://images.unsplash.com/photo-1485462537746-965f33f7f6a7?auto=format&fit=crop&q=80&w=500',
+  'preppy': 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&q=80&w=500',
 };
 
 const COLOR_MAP: Record<string, string> = {
@@ -244,7 +245,7 @@ export default function OutfitPage() {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <Animated.View entering={FadeInRight.duration(400)} className="flex-1 bg-white">
       {Platform.OS === 'ios' && <Header />}
 
       <View className="px-6 pt-6 pb-4">
@@ -498,6 +499,6 @@ export default function OutfitPage() {
           />
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 }

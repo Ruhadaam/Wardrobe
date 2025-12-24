@@ -12,34 +12,50 @@ const API_KEYS = {
     android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY || '',
 };
 
+let initializationPromise: Promise<void> | null = null;
+
 export const RevenueCatService = {
     init: async () => {
-        try {
-            const apiKey = Platform.OS === 'ios' ? API_KEYS.ios : API_KEYS.android;
+        if (initializationPromise) return initializationPromise;
 
-            if (!apiKey) {
-                console.warn('RevenueCat API key is missing for platform:', Platform.OS);
-                return;
+        initializationPromise = (async () => {
+            try {
+                const apiKey = Platform.OS === 'ios' ? API_KEYS.ios : API_KEYS.android;
+
+                if (!apiKey) {
+                    console.warn('RevenueCat API key is missing for platform:', Platform.OS);
+                    return;
+                }
+
+                // Explicitly set log handler to avoid "customLogHandler is not a function" crash
+                if (__DEV__) {
+                    Purchases.setLogHandler((level, message) => {
+                        console.log(`[RevenueCat][${level}] ${message}`);
+                    });
+                    await Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+                }
+
+                await Purchases.configure({ apiKey });
+                console.log('RevenueCat initialized successfully');
+            } catch (e) {
+                console.error('Error initializing RevenueCat:', e);
+                initializationPromise = null; // Reset on failure so it can be retried
             }
+        })();
 
-            // Explicitly set log handler to avoid "customLogHandler is not a function" crash
-            if (__DEV__) {
-                Purchases.setLogHandler((level, message) => {
-                    console.log(`[RevenueCat][${level}] ${message}`);
-                });
-                await Purchases.setLogLevel(LOG_LEVEL.DEBUG);
-            }
+        return initializationPromise;
+    },
 
-            await Purchases.configure({ apiKey });
-
-            console.log('RevenueCat initialized successfully');
-        } catch (e) {
-            console.error('Error initializing RevenueCat:', e);
+    ensureInitialized: async () => {
+        if (!initializationPromise) {
+            await RevenueCatService.init();
         }
+        return initializationPromise;
     },
 
     getPurchaserInfo: async (): Promise<CustomerInfo | null> => {
         try {
+            await RevenueCatService.ensureInitialized();
             const info = await Purchases.getCustomerInfo();
             return info;
         } catch (e) {
@@ -50,6 +66,7 @@ export const RevenueCatService = {
 
     getOfferings: async (): Promise<PurchasesOffering | null> => {
         try {
+            await RevenueCatService.ensureInitialized();
             const offerings = await Purchases.getOfferings();
             if (offerings.current !== null) {
                 return offerings.current;
@@ -63,6 +80,7 @@ export const RevenueCatService = {
 
     purchasePackage: async (pack: PurchasesPackage) => {
         try {
+            await RevenueCatService.ensureInitialized();
             const { customerInfo } = await Purchases.purchasePackage(pack);
             return customerInfo;
         } catch (e: any) {
@@ -75,6 +93,7 @@ export const RevenueCatService = {
 
     restorePurchases: async () => {
         try {
+            await RevenueCatService.ensureInitialized();
             const customerInfo = await Purchases.restorePurchases();
             return customerInfo;
         } catch (e) {
@@ -84,9 +103,19 @@ export const RevenueCatService = {
     },
 
     isPro: async (customerInfo?: CustomerInfo): Promise<boolean> => {
-        // Check if 'pro' entitlement is active
-        // TODO: Replace 'pro' with your actual Entitlement ID from RevenueCat
-        const info = customerInfo || await RevenueCatService.getPurchaserInfo();
-        return info?.entitlements.active['pro'] !== undefined;
-    }
+        try {
+            // Check if 'pro' entitlement is active
+            // TODO: Replace 'pro' with your actual Entitlement ID from RevenueCat
+            const info = customerInfo || await RevenueCatService.getPurchaserInfo();
+            return info?.entitlements.active['pro'] !== undefined;
+        } catch (e) {
+            console.error('Error in isPro:', e);
+            return false;
+        }
+    },
+
+    /*isPro: async (): Promise<boolean> => {
+return true; // Herkesi Pro yapar
+},*/
+
 };

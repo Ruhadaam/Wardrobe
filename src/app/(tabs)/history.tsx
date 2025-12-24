@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { View, Text, Platform, FlatList, TouchableOpacity, Image, RefreshControl, Alert, ScrollView } from "react-native";
+import Animated, { FadeInRight, FadeInDown } from "react-native-reanimated";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from 'expo-router';
@@ -56,64 +57,68 @@ export default function HistoryPage() {
     return format(date, 'd MMM');
   };
 
-  const renderOutfitItem = ({ item }: { item: Outfit }) => {
+  const renderOutfitItem = ({ item, index }: { item: Outfit, index: number }) => {
     // Determine how many items to show in the preview grid
     const hasMore = item.items.length > 4;
     const previewItems = item.items.slice(0, hasMore ? 3 : 4);
 
     return (
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={() => setSelectedOutfit(item)}
-        className="bg-white m-2 rounded-[32px] overflow-hidden"
-        style={{
-          width: '46%',
-          aspectRatio: 0.75,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 12 },
-          shadowOpacity: 0.08,
-          shadowRadius: 16,
-          elevation: 6,
-          borderWidth: 1,
-          borderColor: '#f8fafc'
-        }}
+      <Animated.View
+        entering={FadeInDown.delay(index * 100).duration(400)}
+        style={{ width: '46%', margin: '2%' }}
       >
-        <View className="flex-1 flex-row flex-wrap bg-slate-50">
-          {previewItems.map((outfitItem, index) => (
-            <View
-              key={index}
-              style={{
-                width: previewItems.length === 1 ? '100%' : '50%',
-                height: previewItems.length <= 2 ? '100%' : '50%',
-                borderWidth: 0.5,
-                borderColor: 'white'
-              }}
-            >
-              <Image
-                source={{ uri: outfitItem.image_url }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setSelectedOutfit(item)}
+          className="bg-white rounded-[32px] overflow-hidden w-full"
+          style={{
+            aspectRatio: 0.75,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.08,
+            shadowRadius: 16,
+            elevation: 6,
+            borderWidth: 1,
+            borderColor: '#f8fafc'
+          }}
+        >
+          <View className="flex-1 flex-row flex-wrap bg-slate-50">
+            {previewItems.map((outfitItem, index) => (
+              <View
+                key={index}
+                style={{
+                  width: previewItems.length === 1 ? '100%' : '50%',
+                  height: previewItems.length <= 2 ? '100%' : '50%',
+                  borderWidth: 0.5,
+                  borderColor: 'white'
+                }}
+              >
+                <Image
+                  source={{ uri: outfitItem.image_url }}
+                  className="w-full h-full"
+                  resizeMode="cover"
+                />
+              </View>
+            ))}
+            {/* Show the plus box ONLY if there are MORE than 4 items */}
+            {hasMore && (
+              <View className="w-1/2 h-1/2 bg-slate-100 items-center justify-center border-[0.5px] border-white">
+                <Text className="text-slate-400 font-black text-xs">+{item.items.length - 3}</Text>
+              </View>
+            )}
+          </View>
+          <View className="p-4 bg-white border-t border-slate-50">
+            <View className="flex-row justify-between items-center mb-0.5">
+              <Text className="text-slate-500 text-[10px] font-black font-inter-black uppercase tracking-widest">
+                {formatOutfitDate(item.created_at)}
+              </Text>
             </View>
-          ))}
-          {/* Show the plus box ONLY if there are MORE than 4 items */}
-          {hasMore && (
-            <View className="w-1/2 h-1/2 bg-slate-100 items-center justify-center border-[0.5px] border-white">
-              <Text className="text-slate-400 font-black text-xs">+{item.items.length - 3}</Text>
-            </View>
-          )}
-        </View>
-        <View className="p-4 bg-white border-t border-slate-50">
-          <View className="flex-row justify-between items-center mb-0.5">
-            <Text className="text-slate-500 text-[10px] font-black font-inter-black uppercase tracking-widest">
-              {formatOutfitDate(item.created_at)}
+            <Text className="text-slate-900 font-black font-inter-black text-sm uppercase">
+              {item.items.length} {item.items.length === 1 ? 'Item' : 'Items'}
             </Text>
           </View>
-          <Text className="text-slate-900 font-black font-inter-black text-sm uppercase">
-            {item.items.length} {item.items.length === 1 ? 'Item' : 'Items'}
-          </Text>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </Animated.View>
     );
   };
 
@@ -149,7 +154,7 @@ export default function HistoryPage() {
   );
 
   return (
-    <View className="flex-1 bg-white">
+    <Animated.View entering={FadeInRight.duration(400)} className="flex-1 bg-white">
       {Platform.OS === 'ios' && <Header />}
 
       <View className="flex-1">
@@ -237,6 +242,6 @@ export default function HistoryPage() {
         confetti={false}
         onDelete={selectedOutfit ? () => handleDelete(selectedOutfit.id) : undefined}
       />
-    </View>
+    </Animated.View>
   );
 }

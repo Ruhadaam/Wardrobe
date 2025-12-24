@@ -10,6 +10,7 @@ import {
   Platform,
   Modal,
 } from "react-native";
+import Animated, { FadeInRight } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { MaterialIcons, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -235,7 +236,7 @@ export default function WardrobePage() {
 
 
   return (
-    <View className="flex-1 bg-white" >
+    <Animated.View entering={FadeInRight.duration(400)} className="flex-1 bg-white" >
       {Platform.OS === 'ios' && <Header />}
       <View className="px-5 pt-6 pb-2 bg-transparent ">
         <View className="flex-row justify-between items-center mb-5">
@@ -574,6 +575,6 @@ export default function WardrobePage() {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </Animated.View>
   );
 }

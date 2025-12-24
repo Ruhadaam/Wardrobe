@@ -74,8 +74,9 @@ function AndroidTabBar() {
   return (
     <Tabs
       screenOptions={{
-        header: () => <Header />,
+        header: (props) => <Header {...props} />,
         headerShown: true,
+        animation: 'fade',
         tabBarActiveTintColor: '#3A1AEB',
         tabBarInactiveTintColor: '#94a3b8',
         tabBarStyle,
@@ -119,6 +120,7 @@ function AndroidTabBar() {
       <Tabs.Screen
         name="profile"
         options={{
+          headerShown: false,
           title: "Profile",
           tabBarIcon: ({ color, focused }) => (
             <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-50' : ''}`}>

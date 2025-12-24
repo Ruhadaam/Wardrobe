@@ -190,7 +190,7 @@ export default function Register() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             className="flex-1 bg-slate-900"
         >
-            <StatusBar style="light" />
+            <StatusBar style="dark" />
             <Stack.Screen options={{ headerShown: false }} />
 
             <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24 }}>

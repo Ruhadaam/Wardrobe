@@ -37,14 +37,21 @@ function InitialLayout() {
   useEffect(() => {
     if (loading) return;
 
-    // Initialize RevenueCat
-    import("../lib/revenuecat").then(({ RevenueCatService }) => {
-      RevenueCatService.init();
-    });
+    const initApp = async () => {
+      // Initialize RevenueCat
+      try {
+        const { RevenueCatService } = await import("../lib/revenuecat");
+        await RevenueCatService.init();
+      } catch (e) {
+        console.error("Failed to initialize RevenueCat in layout:", e);
+      }
 
-    if ((Platform.OS !== 'android' || fontsLoaded || fontError)) {
-      SplashScreen.hideAsync();
-    }
+      if (Platform.OS !== 'android' || fontsLoaded || fontError) {
+        await SplashScreen.hideAsync();
+      }
+    };
+
+    initApp();
   }, [fontsLoaded, fontError, loading]);
 
   useEffect(() => {
@@ -66,7 +73,7 @@ function InitialLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <Slot />
         <Toast />
       </SafeAreaProvider>

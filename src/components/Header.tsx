@@ -6,7 +6,7 @@ import { useAuth } from '../providers/AuthProvider';
 import { RevenueCatService } from '../lib/revenuecat';
 import { useState, useEffect } from 'react';
 
-export default function Header() {
+export default function Header(props: any) {
     const { top } = useSafeAreaInsets();
     const { profile } = useAuth();
     const [isPro, setIsPro] = useState(false);
@@ -44,9 +44,7 @@ export default function Header() {
                 </View>
             </View>
 
-            <View className={`flex-row items-center px-4 py-2.5 rounded-2xl border ${isPro
-                ? 'bg-amber-100 border-amber-200 shadow-sm'
-                : 'bg-slate-100 border-slate-200'
+            <View className={`flex-row items-center px-4 py-2.5 rounded-2xl border ${isPro ? 'bg-amber-100 border-amber-200' : 'bg-slate-100 border-slate-200'
                 }`}>
                 <View className={`${isPro ? 'bg-amber-500' : 'bg-slate-400'} p-1.5 rounded-lg shadow-sm`}>
                     <MaterialCommunityIcons

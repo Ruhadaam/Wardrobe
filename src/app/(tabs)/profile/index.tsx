@@ -1,30 +1,50 @@
 import { View, Text, TouchableOpacity, Platform, ScrollView } from "react-native";
+import Animated, { FadeInRight } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAuth } from "../../providers/AuthProvider";
+import { useAuth } from "../../../providers/AuthProvider";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { RevenueCatService } from "../../../lib/revenuecat";
 
 
 export default function ProfilePage() {
   const { signOut, profile, user } = useAuth();
+  const router = useRouter();
+  const [isPro, setIsPro] = useState(false);
+  const [loadingPro, setLoadingPro] = useState(true);
+
+  useEffect(() => {
+    checkSubscription();
+  }, []);
+
+  const checkSubscription = async () => {
+    try {
+      const proStatus = await RevenueCatService.isPro();
+      setIsPro(proStatus);
+    } catch (e) {
+      console.error("Error checking subscription in profile:", e);
+    } finally {
+      setLoadingPro(false);
+    }
+  };
 
   const settingsItems = [
-    { id: 'account', label: 'Account Info', icon: 'account-outline', color: '#3A1AEB' },
-    { id: 'wardrobe', label: 'Wardrobe Data', icon: 'wardrobe-outline', color: '#EC4899' },
-    { id: 'settings', label: 'App Settings', icon: 'cog-outline', color: '#F59E0B' },
-    { id: 'support', label: 'Help & Support', icon: 'help-circle-outline', color: '#10B981' },
+    { id: 'account', label: 'Account Info', icon: 'account-outline', color: '#3A1AEB', route: '/(tabs)/profile/account-info' },
+    { id: 'wardrobe', label: 'Wardrobe Data', icon: 'wardrobe-outline', color: '#EC4899', route: '/(tabs)/profile/wardrobe-data' },
+    { id: 'settings', label: 'App Settings', icon: 'cog-outline', color: '#F59E0B', route: '/(tabs)/profile/settings' },
+    { id: 'support', label: 'Help & Support', icon: 'help-circle-outline', color: '#10B981', route: '/(tabs)/profile/support' },
   ];
 
   return (
-    <View className="flex-1 bg-white">
-
-
+    <Animated.View entering={FadeInRight.duration(400)} className="flex-1 bg-white">
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         {/* User Header */}
-        <View className="items-center mt-10 mb-8 px-6">
+        <View className="items-center mt-10 mb-8 px-6 pt-8">
           <View className="w-24 h-24 bg-slate-50 rounded-full items-center justify-center mb-6 border-4 border-slate-50 shadow-sm">
             <MaterialCommunityIcons
               name={profile?.gender === 'female' ? "face-woman" : "face-man"}
@@ -40,7 +60,10 @@ export default function ProfilePage() {
             {user?.email}
           </Text>
 
-          <TouchableOpacity className="bg-[#3A1AEB]/10 px-8 py-3.5 rounded-2xl">
+          <TouchableOpacity
+            className="bg-[#3A1AEB]/10 px-8 py-3.5 rounded-2xl"
+            onPress={() => router.push('/(tabs)/profile/account-info' as any)}
+          >
             <Text className="text-[#3A1AEB] font-black font-inter-black text-sm uppercase tracking-widest">
               Edit Profile
             </Text>
@@ -62,22 +85,37 @@ export default function ProfilePage() {
             <View className="flex-1 mr-4">
               <View className="flex-row items-center mb-3">
                 <View className="bg-[#3A1AEB]/10 p-2 rounded-xl mr-2">
-                  <MaterialCommunityIcons name="diamond-outline" size={20} color="#3A1AEB" />
+                  <MaterialCommunityIcons name={isPro ? "crown-outline" : "diamond-outline"} size={20} color="#3A1AEB" />
                 </View>
                 <Text className="text-slate-900 font-black font-inter-black text-lg">
-                  Wardrobe Free
+                  {loadingPro ? 'Checking Plan...' : isPro ? 'Wardrobe Pro' : 'Wardrobe Free'}
                 </Text>
               </View>
               <Text className="text-slate-500 font-inter-medium text-sm leading-5 mb-6">
-                Limited AI suggestions and wardrobe analysis.
+                {isPro
+                  ? 'Unlimited AI suggestions and full wardrobe analysis active.'
+                  : 'Limited AI suggestions and wardrobe analysis.'}
               </Text>
 
-              <TouchableOpacity className="bg-[#3A1AEB] py-4 rounded-2xl flex-row items-center justify-center shadow-lg shadow-[#3A1AEB]/30">
-                <MaterialCommunityIcons name="arrow-up-circle-outline" size={20} color="white" />
-                <Text className="text-white font-black font-inter-black text-sm ml-2 uppercase tracking-widest">
-                  Upgrade to Pro
-                </Text>
-              </TouchableOpacity>
+              {!isPro && !loadingPro && (
+                <TouchableOpacity
+                  className="bg-[#3A1AEB] py-4 rounded-2xl flex-row items-center justify-center shadow-lg shadow-[#3A1AEB]/30"
+                  onPress={() => router.push('/paywall')}
+                >
+                  <MaterialCommunityIcons name="arrow-up-circle-outline" size={20} color="white" />
+                  <Text className="text-white font-black font-inter-black text-sm ml-2 uppercase tracking-widest">
+                    Upgrade to Pro
+                  </Text>
+                </TouchableOpacity>
+              )}
+              {isPro && (
+                <View className="bg-emerald-50 py-3 rounded-2xl flex-row items-center justify-center border border-emerald-100">
+                  <MaterialCommunityIcons name="check-decagram" size={18} color="#10B981" />
+                  <Text className="text-emerald-600 font-black font-inter-black text-xs ml-2 uppercase tracking-widest">
+                    Active Subscription
+                  </Text>
+                </View>
+              )}
             </View>
 
             <View className="w-28 h-28 bg-[#3A1AEB]/5 rounded-3xl items-center justify-center overflow-hidden">
@@ -98,6 +136,7 @@ export default function ProfilePage() {
             {settingsItems.map((item, index) => (
               <TouchableOpacity
                 key={item.id}
+                onPress={() => router.push(item.route as any)}
                 className={`flex-row items-center p-5 active:bg-slate-50 ${index !== settingsItems.length - 1 ? 'border-b border-slate-50' : ''
                   }`}
               >
@@ -135,10 +174,6 @@ export default function ProfilePage() {
           </Text>
         </View>
       </ScrollView>
-    </View>
+    </Animated.View>
   );
 }
-
-
-
-

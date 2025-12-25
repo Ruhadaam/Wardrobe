@@ -4,6 +4,9 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInRight } from 'react-native-reanimated';
+import * as Notifications from 'expo-notifications';
+import { useEffect } from 'react';
+import { Alert } from 'react-native';
 
 // --- Types ---
 interface SettingItemProps {
@@ -73,9 +76,43 @@ export default function SettingsPage() {
     const router = useRouter();
     const { top } = useSafeAreaInsets();
 
-    const [notifications, setNotifications] = useState(true);
+    const [notifications, setNotifications] = useState(false);
     const [marketingEmails, setMarketingEmails] = useState(false);
     const [faceId, setFaceId] = useState(true);
+
+    useEffect(() => {
+        checkNotificationStatus();
+    }, []);
+
+    const checkNotificationStatus = async () => {
+        const { status } = await Notifications.getPermissionsAsync();
+        setNotifications(status === 'granted');
+    };
+
+    const handleNotificationToggle = async (value: boolean) => {
+        if (value) {
+            const { status: existingStatus } = await Notifications.getPermissionsAsync();
+            let finalStatus = existingStatus;
+
+            if (existingStatus !== 'granted') {
+                const { status } = await Notifications.requestPermissionsAsync();
+                finalStatus = status;
+            }
+
+            if (finalStatus !== 'granted') {
+                setNotifications(false);
+                Alert.alert(
+                    'Permission Denied',
+                    'Please enable notifications in your device settings to receive updates.',
+                    [{ text: 'OK' }]
+                );
+            } else {
+                setNotifications(true);
+            }
+        } else {
+            setNotifications(false);
+        }
+    };
 
     return (
         <Animated.View entering={FadeInRight.duration(400)} className="flex-1 bg-white">
@@ -105,7 +142,7 @@ export default function SettingsPage() {
                             subLabel="Outfit reminders & daily tips"
                             type="switch"
                             value={notifications}
-                            onValueChange={setNotifications}
+                            onValueChange={handleNotificationToggle}
                         />
 
                     </View>
@@ -120,7 +157,7 @@ export default function SettingsPage() {
                             icon="shield-check-outline"
                             label="Privacy Policy"
                             type="link"
-                            onPress={() => console.log("Privacy clicked")}
+                            onPress={() => router.push('/(tabs)/profile/privacy-policy')}
                         />
                     </View>
                 </View>
@@ -134,7 +171,7 @@ export default function SettingsPage() {
                             label="Language"
                             subLabel="English (US)"
                             type="link"
-                            onPress={() => console.log("Language clicked")}
+                            onPress={() => router.push('/(tabs)/profile/language')}
                         />
 
                     </View>

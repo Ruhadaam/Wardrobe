@@ -11,6 +11,8 @@ export default function ProfileLayout() {
             <Stack.Screen name="wardrobe-data" />
             <Stack.Screen name="settings" />
             <Stack.Screen name="support" />
+            <Stack.Screen name="privacy-policy" />
+            <Stack.Screen name="language" />
         </Stack>
     );
 }

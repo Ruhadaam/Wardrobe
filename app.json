@@ -50,7 +50,8 @@
           "photosPermission": "The app accesses your photos to let you pick wardrobe items."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

@@ -84,18 +84,12 @@ export default function SupportPage() {
                 {/* Contact Section */}
                 <View className="px-6 mb-10">
                     <Text className="text-slate-400 font-black font-inter-black text-xs uppercase tracking-[3px] mb-6 ml-2">Still need help?</Text>
-                    <View className="flex-row gap-4">
+                    <View className="flex-row">
                         <TouchableOpacity className="flex-1 bg-slate-900 rounded-[32px] p-6 items-center justify-center shadow-lg">
                             <View className="w-12 h-12 bg-white/10 rounded-full items-center justify-center mb-4">
                                 <MaterialCommunityIcons name="email-fast-outline" size={24} color="white" />
                             </View>
                             <Text className="text-white font-inter-bold font-bold">Email Us</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity className="flex-1 bg-[#3A1AEB] rounded-[32px] p-6 items-center justify-center shadow-lg shadow-[#3A1AEB]/20">
-                            <View className="w-12 h-12 bg-white/10 rounded-full items-center justify-center mb-4">
-                                <MaterialCommunityIcons name="chat-processing-outline" size={24} color="white" />
-                            </View>
-                            <Text className="text-white font-inter-bold font-bold">Chat Live</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

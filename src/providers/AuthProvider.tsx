@@ -17,6 +17,7 @@ type AuthContextType = {
     profile: UserProfile | null;
     loading: boolean;
     signOut: () => Promise<void>;
+    updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: any }>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthContextType>({
     profile: null,
     loading: true,
     signOut: async () => { },
+    updateProfile: async () => ({ success: false }),
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -120,12 +122,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(null);
     };
 
+    const updateProfile = async (updates: Partial<UserProfile>) => {
+        if (!user) return { success: false, error: 'No user session' };
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .update(updates)
+                .eq('id', user.id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            setProfile(data);
+            return { success: true };
+        } catch (e) {
+            console.error('Error updating profile:', e);
+            return { success: false, error: e };
+        }
+    };
+
     const value = {
         session,
         user,
         profile,
         loading,
         signOut,
+        updateProfile,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

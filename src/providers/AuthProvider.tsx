@@ -18,6 +18,8 @@ type AuthContextType = {
     loading: boolean;
     signOut: () => Promise<void>;
     updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: any }>;
+    isPremium: boolean;
+    refreshPremiumStatus: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -27,6 +29,8 @@ const AuthContext = createContext<AuthContextType>({
     loading: true,
     signOut: async () => { },
     updateProfile: async () => ({ success: false }),
+    isPremium: false,
+    refreshPremiumStatus: async () => { },
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -35,9 +39,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [isPremium, setIsPremium] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Initial premium check
+        refreshPremiumStatus();
+
         // Check active sessions and sets the user
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
@@ -55,8 +63,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(session?.user ?? null);
             if (session?.user) {
                 fetchProfile(session.user.id);
+                refreshPremiumStatus();
             } else {
                 setProfile(null);
+                setIsPremium(false);
                 setLoading(false);
             }
         });
@@ -141,13 +151,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const refreshPremiumStatus = async () => {
+        try {
+            const { RevenueCatService } = require('../lib/revenuecat');
+            const status = await RevenueCatService.isPro();
+            setIsPremium(status);
+        } catch (e) {
+            console.error('Error refreshing premium status:', e);
+        }
+    };
+
     const value = {
         session,
         user,
         profile,
+        isPremium,
         loading,
         signOut,
         updateProfile,
+        refreshPremiumStatus
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

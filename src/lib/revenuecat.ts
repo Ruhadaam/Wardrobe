@@ -104,10 +104,9 @@ export const RevenueCatService = {
 
     isPro: async (customerInfo?: CustomerInfo): Promise<boolean> => {
         try {
-            // Check if 'pro' entitlement is active
-            // TODO: Replace 'pro' with your actual Entitlement ID from RevenueCat
+            // Check if 'Wardrobe Pro' entitlement is active
             const info = customerInfo || await RevenueCatService.getPurchaserInfo();
-            return info?.entitlements.active['pro'] !== undefined;
+            return info?.entitlements.active['Wardrobe Pro'] !== undefined;
         } catch (e) {
             console.error('Error in isPro:', e);
             return false;

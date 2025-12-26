@@ -48,22 +48,12 @@ const groupItemsByCategory = (items: WardrobeItem[]) => {
 
 export default function WardrobePage() {
     const { top } = useSafeAreaInsets();
-    const { user } = useAuth();
+    const { user, isPremium } = useAuth();
     const { items, loading: isLoading, refreshItems } = useWardrobe();
     const [groupedItems, setGroupedItems] = useState<Record<string, WardrobeItem[]>>({});
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [isPro, setIsPro] = useState<boolean | null>(null);
     const [showSourceModal, setShowSourceModal] = useState(false);
     const router = useRouter();
-
-    useEffect(() => {
-        checkSubscription();
-    }, [user]);
-
-    const checkSubscription = async () => {
-        const proStatus = await RevenueCatService.isPro();
-        setIsPro(proStatus);
-    };
 
     useEffect(() => {
         setGroupedItems(groupItemsByCategory(items));
@@ -117,7 +107,7 @@ export default function WardrobePage() {
             return;
         }
 
-        if (isPro === false && items.length >= 20) {
+        if (isPremium === false && items.length >= 20) {
             Alert.alert(
                 "Wardrobe Limit Reached",
                 "Free accounts can have up to 20 items in their wardrobe. Upgrade to Pro for limitless storage!",
@@ -269,7 +259,7 @@ export default function WardrobePage() {
                 </View>
 
                 {/* Plan Limit Bar */}
-                {isPro === false && (
+                {isPremium === false && (
                     <View
                         className="bg-white rounded-3xl p-5 mb-4 border border-slate-100"
                         style={{

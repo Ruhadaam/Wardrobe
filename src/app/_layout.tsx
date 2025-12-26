@@ -1,5 +1,6 @@
 import "../global.css";
-import { Slot, useRouter, useSegments } from "expo-router";
+import "react-native-reanimated";
+import { Slot, useRouter, useSegments, Stack, Redirect } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -22,7 +23,7 @@ import { WardrobeProvider } from "../providers/WardrobeProvider";
 SplashScreen.preventAutoHideAsync();
 
 function InitialLayout() {
-  const { session, loading } = useAuth();
+  const { session, loading, isPremium } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -54,17 +55,21 @@ function InitialLayout() {
     initApp();
   }, [fontsLoaded, fontError, loading]);
 
-  useEffect(() => {
-    if (loading) return;
+  /*
+    useEffect(() => {
+      if (loading) return;
+  
+      const inAuthGroup = segments[0] === '(auth)';
+  
+      if (!session && !inAuthGroup) {
+        router.replace('/(auth)/login');
+      } else if (session && inAuthGroup) {
+        router.replace('/(tabs)/wardrobe');
+      }
+    }, [session, loading, segments]);
+  */
 
-    const inAuthGroup = segments[0] === '(auth)';
 
-    if (!session && !inAuthGroup) {
-      router.replace('/(auth)/login');
-    } else if (session && inAuthGroup) {
-      router.replace('/(tabs)/wardrobe');
-    }
-  }, [session, loading, segments]);
 
   if ((Platform.OS === 'android' && !fontsLoaded && !fontError) || loading) {
     return null;

@@ -59,26 +59,21 @@ const COLOR_MAP: Record<string, string> = {
 
 export default function OutfitPage() {
   const { top } = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, isPremium } = useAuth();
   const { items, loading } = useWardrobe(); // Use global state
   const router = useRouter();
 
-  const [isPro, setIsPro] = useState<boolean | null>(null);
   const [todayOutfitCount, setTodayOutfitCount] = useState<number>(0);
 
   useEffect(() => {
-    checkSubscription();
-  }, [user]);
-
-  const checkSubscription = async () => {
-    const proStatus = await RevenueCatService.isPro();
-    setIsPro(proStatus);
-
-    if (!proStatus && user?.id) {
-      const count = await wardrobeService.getTodayOutfitCount(user.id);
-      setTodayOutfitCount(count);
-    }
-  };
+    const fetchUsage = async () => {
+      if (!isPremium && user?.id) {
+        const count = await wardrobeService.getTodayOutfitCount(user.id);
+        setTodayOutfitCount(count);
+      }
+    };
+    fetchUsage();
+  }, [user, isPremium]);
 
   // State for all available tags grouped by category
   const [filterGroups, setFilterGroups] = useState<FilterGroup[]>(DEFAULT_FILTER_GROUPS);
@@ -169,7 +164,7 @@ export default function OutfitPage() {
       return;
     }
 
-    if (isPro === false && todayOutfitCount >= 2) {
+    if (isPremium === false && todayOutfitCount >= 2) {
       Alert.alert(
         "Daily Limit Reached",
         "Free accounts have a limit of 2 outfits per day. Upgrade to Pro for limitless creations!",
@@ -219,6 +214,11 @@ export default function OutfitPage() {
             if (user?.id) {
               console.log("Auto-saving outfit to history...");
               await wardrobeService.saveOutfit(user.id, resolvedItems);
+              // Refresh count if free
+              if (!isPremium) {
+                const count = await wardrobeService.getTodayOutfitCount(user.id);
+                setTodayOutfitCount(count);
+              }
             }
           } catch (err) {
             console.error("Failed to auto-save outfit:", err);

@@ -8,16 +8,7 @@ import { useState, useEffect } from 'react';
 
 export default function Header(props: any) {
     const { top } = useSafeAreaInsets();
-    const { profile } = useAuth();
-    const [isPro, setIsPro] = useState(false);
-
-    useEffect(() => {
-        const checkStatus = async () => {
-            const status = await RevenueCatService.isPro();
-            setIsPro(status);
-        };
-        checkStatus();
-    }, []);
+    const { profile, isPremium } = useAuth();
 
     // Credits hardcoded to 100 for now, as requested
     // Or use profile.credits if we added it to DB
@@ -44,18 +35,18 @@ export default function Header(props: any) {
                 </View>
             </View>
 
-            <View className={`flex-row items-center px-4 py-2.5 rounded-2xl border ${isPro ? 'bg-amber-100 border-amber-200' : 'bg-slate-100 border-slate-200'
+            <View className={`flex-row items-center px-4 py-2.5 rounded-2xl border ${isPremium ? 'bg-amber-100 border-amber-200' : 'bg-slate-100 border-slate-200'
                 }`}>
-                <View className={`${isPro ? 'bg-amber-500' : 'bg-slate-400'} p-1.5 rounded-lg shadow-sm`}>
+                <View className={`${isPremium ? 'bg-amber-500' : 'bg-slate-400'} p-1.5 rounded-lg shadow-sm`}>
                     <MaterialCommunityIcons
-                        name={isPro ? "star-four-points" : "account-outline"}
+                        name={isPremium ? "star-four-points" : "account-outline"}
                         size={14}
                         color="white"
                     />
                 </View>
-                <Text className={`${isPro ? 'text-amber-900' : 'text-slate-800'
+                <Text className={`${isPremium ? 'text-amber-900' : 'text-slate-800'
                     } font-black font-inter-black ml-2.5 text-xs tracking-wider uppercase`}>
-                    {isPro ? 'PREMIUM' : 'FREE'}
+                    {isPremium ? 'PREMIUM' : 'FREE'}
                 </Text>
             </View>
         </View>

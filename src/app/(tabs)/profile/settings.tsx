@@ -7,6 +7,7 @@ import Animated, { FadeInRight } from 'react-native-reanimated';
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
 import { Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 // --- Types ---
 interface SettingItemProps {
@@ -75,6 +76,7 @@ const SettingItem = ({ icon, label, type, value, onValueChange, subLabel, onPres
 export default function SettingsPage() {
     const router = useRouter();
     const { top } = useSafeAreaInsets();
+    const { t } = useTranslation();
 
     const [notifications, setNotifications] = useState(false);
     const [marketingEmails, setMarketingEmails] = useState(false);
@@ -102,9 +104,9 @@ export default function SettingsPage() {
             if (finalStatus !== 'granted') {
                 setNotifications(false);
                 Alert.alert(
-                    'Permission Denied',
-                    'Please enable notifications in your device settings to receive updates.',
-                    [{ text: 'OK' }]
+                    t('settings.permissionDenied'),
+                    t('settings.enableNotifications'),
+                    [{ text: t('common.success') }]
                 );
             } else {
                 setNotifications(true);
@@ -127,19 +129,19 @@ export default function SettingsPage() {
                 >
                     <Ionicons name="chevron-back" size={24} color="#1e293b" />
                 </TouchableOpacity>
-                <Text className="text-xl font-black text-slate-900">App Settings</Text>
+                <Text className="text-xl font-black text-slate-900">{t('settings.title')}</Text>
                 <View className="w-12" />
             </View>
 
             <ScrollView className="flex-1 pt-6" showsVerticalScrollIndicator={false}>
                 {/* Notifications Section */}
                 <View className="px-6 mb-8">
-                    <Text className="text-slate-400 font-black text-xs uppercase tracking-[3px] mb-4 ml-2">Notifications</Text>
+                    <Text className="text-slate-400 font-black text-xs uppercase tracking-[3px] mb-4 ml-2">{t('settings.notifications')}</Text>
                     <View className="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm">
                         <SettingItem
                             icon="bell-outline"
-                            label="Push Notifications"
-                            subLabel="Outfit reminders & daily tips"
+                            label={t('settings.push')}
+                            subLabel={t('settings.pushDesc')}
                             type="switch"
                             value={notifications}
                             onValueChange={handleNotificationToggle}
@@ -150,12 +152,12 @@ export default function SettingsPage() {
 
                 {/* Security Section */}
                 <View className="px-6 mb-8">
-                    <Text className="text-slate-400 font-black text-xs uppercase tracking-[3px] mb-4 ml-2">Security & Privacy</Text>
+                    <Text className="text-slate-400 font-black text-xs uppercase tracking-[3px] mb-4 ml-2">{t('settings.security')}</Text>
                     <View className="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm">
 
                         <SettingItem
                             icon="shield-check-outline"
-                            label="Privacy Policy"
+                            label={t('settings.privacy')}
                             type="link"
                             onPress={() => router.push('/(tabs)/profile/privacy-policy')}
                         />
@@ -164,11 +166,11 @@ export default function SettingsPage() {
 
                 {/* Preferences Section */}
                 <View className="px-6 mb-10">
-                    <Text className="text-slate-400 font-black text-xs uppercase tracking-[3px] mb-4 ml-2">Preferences</Text>
+                    <Text className="text-slate-400 font-black text-xs uppercase tracking-[3px] mb-4 ml-2">{t('settings.preferences')}</Text>
                     <View className="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm">
                         <SettingItem
                             icon="translate"
-                            label="Language"
+                            label={t('settings.language')}
                             subLabel="English (US)"
                             type="link"
                             onPress={() => router.push('/(tabs)/profile/language')}
@@ -179,7 +181,7 @@ export default function SettingsPage() {
 
                 <View className="items-center mb-10">
                     <Text className="text-slate-300 font-medium text-xs">Wardrobe Build 1024</Text>
-                    <Text className="text-[#3A1AEB] font-black text-[10px] mt-2 tracking-widest uppercase">Check for Updates</Text>
+                    <Text className="text-[#3A1AEB] font-black text-[10px] mt-2 tracking-widest uppercase">{t('settings.checkUpdates')}</Text>
                 </View>
             </ScrollView>
         </Animated.View>

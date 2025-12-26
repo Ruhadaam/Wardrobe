@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { View, Text, Platform, FlatList, TouchableOpacity, Image, RefreshControl, Alert, ScrollView } from "react-native";
 import Animated, { FadeInRight, FadeInDown } from "react-native-reanimated";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -10,6 +10,9 @@ import { WardrobeItem } from "../../services/visionApi";
 import Header from "../../components/Header";
 import OutfitViewModal from "../../components/OutfitViewModal";
 import { format, isToday, isYesterday, isSameDay, subDays, eachDayOfInterval } from 'date-fns';
+import { tr, enUS, de, es, fr, ja, ko, zhCN, ar } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
+
 
 interface Outfit {
   id: string;
@@ -19,11 +22,32 @@ interface Outfit {
 
 export default function HistoryPage() {
   const { top } = useSafeAreaInsets();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedOutfit, setSelectedOutfit] = useState<Outfit | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  // Track first render for animations
+  const isFirstRender = useRef(true);
+  const hasLoadedOnce = useRef(false);
+
+  // Locale mapping for date-fns
+  const getLocale = () => {
+    const localeMap: Record<string, any> = {
+      'tr': tr,
+      'en': enUS,
+      'de': de,
+      'es': es,
+      'fr': fr,
+      'ja': ja,
+      'ko': ko,
+      'zh': zhCN,
+      'ar': ar,
+    };
+    return localeMap[i18n.language] || enUS;
+  };
 
   // Generate last 14 days
   const calendarDays = eachDayOfInterval({
@@ -44,17 +68,36 @@ export default function HistoryPage() {
     }
   };
 
+  // Load outfits only once on mount, not on every focus
+  useEffect(() => {
+    if (!hasLoadedOnce.current && user?.id) {
+      hasLoadedOnce.current = true;
+      loadOutfits();
+    }
+  }, [user?.id]);
+
+  // useFocusEffect only for soft refresh (background sync)
   useFocusEffect(
     useCallback(() => {
-      loadOutfits();
+      // After first render, disable animations
+      if (isFirstRender.current) {
+        setTimeout(() => {
+          isFirstRender.current = false;
+        }, 500);
+      }
+      // Only refresh if already loaded once (for returning to screen)
+      if (hasLoadedOnce.current && user?.id) {
+        // Silently refresh without showing loading spinner
+        wardrobeService.getOutfits(user.id).then(setOutfits).catch(console.error);
+      }
     }, [user?.id])
   );
 
   const formatOutfitDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    if (isToday(date)) return 'Today';
-    if (isYesterday(date)) return 'Yesterday';
-    return format(date, 'd MMM');
+    if (isToday(date)) return t('common.today');
+    if (isYesterday(date)) return t('common.yesterday');
+    return format(date, 'd MMM', { locale: getLocale() });
   };
 
   const renderOutfitItem = ({ item, index }: { item: Outfit, index: number }) => {
@@ -62,9 +105,12 @@ export default function HistoryPage() {
     const hasMore = item.items.length > 4;
     const previewItems = item.items.slice(0, hasMore ? 3 : 4);
 
+    // Only animate on first render
+    const animation = isFirstRender.current ? FadeInDown.delay(index * 100).duration(400) : undefined;
+
     return (
       <Animated.View
-        entering={FadeInDown.delay(index * 100).duration(400)}
+        entering={animation}
         style={{ width: '46%', margin: '2%' }}
       >
         <TouchableOpacity
@@ -114,7 +160,7 @@ export default function HistoryPage() {
               </Text>
             </View>
             <Text className="text-slate-900 font-black font-inter-black text-sm uppercase">
-              {item.items.length} {item.items.length === 1 ? 'Item' : 'Items'}
+              {t(item.items.length === 1 ? 'wardrobe.item_one' : 'wardrobe.item_other', { count: item.items.length })}
             </Text>
           </View>
         </TouchableOpacity>
@@ -124,12 +170,12 @@ export default function HistoryPage() {
 
   const handleDelete = (outfitId: string) => {
     Alert.alert(
-      "Delete Outfit",
-      "Are you sure you want to delete this outfit? This cannot be undone.",
+      t('history.deleteTitle'),
+      t('history.deleteConfirm'),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         {
-          text: "Delete",
+          text: t('common.delete'),
           style: "destructive",
           onPress: async () => {
             try {
@@ -138,7 +184,7 @@ export default function HistoryPage() {
               await wardrobeService.deleteOutfit(outfitId);
               setOutfits(prev => prev.filter(o => o.id !== outfitId));
             } catch (error) {
-              Alert.alert("Error", "Failed to delete outfit.");
+              Alert.alert(t('common.error'), t('history.deleteFailed'));
               console.error(error);
             } finally {
               setLoading(false);
@@ -154,13 +200,13 @@ export default function HistoryPage() {
   );
 
   return (
-    <Animated.View entering={FadeInRight.duration(400)} className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       {Platform.OS === 'ios' && <Header />}
 
       <View className="flex-1">
         <View className="px-6">
           <Text className="text-3xl font-black font-inter-black text-slate-900 mt-6 mb-4 tracking-tight">
-            History
+            {t('history.title')}
           </Text>
 
           {/* Horizontal Calendar Picker */}
@@ -172,9 +218,11 @@ export default function HistoryPage() {
             >
               {calendarDays.map((date) => {
                 const isSelected = isSameDay(date, selectedDate);
-                const dayName = format(date, 'EEE').toUpperCase();
+                const dayName = format(date, 'EEE', { locale: getLocale() }).toUpperCase();
                 const dayNum = format(date, 'd');
-                const isWeekend = dayName === 'SAT' || dayName === 'SUN';
+                // Check for weekend using day of week number (0 = Sunday, 6 = Saturday)
+                const dayOfWeek = date.getDay();
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
                 return (
                   <TouchableOpacity
@@ -212,10 +260,10 @@ export default function HistoryPage() {
                 <MaterialCommunityIcons name="calendar-blank" size={40} color="#cbd5e1" />
               </View>
               <Text className="text-slate-500 text-lg font-inter-medium text-center">
-                Nothing for this day.
+                {t('history.emptyTitle')}
               </Text>
               <Text className="text-slate-400 text-sm mt-2 text-center px-10">
-                You didn't generate any outfits on this date.
+                {t('history.emptyDesc')}
               </Text>
             </View>
           ) : (
@@ -242,6 +290,6 @@ export default function HistoryPage() {
         confetti={false}
         onDelete={selectedOutfit ? () => handleDelete(selectedOutfit.id) : undefined}
       />
-    </Animated.View>
+    </View>
   );
 }

@@ -15,10 +15,12 @@ import { PurchasesPackage } from 'react-native-purchases';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 // Kendi importların (Dosya yollarının doğru olduğundan emin ol)
 import { RevenueCatService } from '../lib/revenuecat';
 import { useAuth } from '../providers/AuthProvider';
+import { useWardrobe } from '../providers/WardrobeProvider';
 
 // --- BİLEŞEN TANIMLARI IMPORTLARDAN SONRA GELMELİ ---
 
@@ -30,12 +32,13 @@ const PackageItem = ({ pack, isSelected, onSelect, savings, purchasing }: {
     savings: number | null;
     purchasing: boolean;
 }) => {
+    const { t } = useTranslation();
     const isAnnual = pack.packageType === 'ANNUAL';
 
     // GÜVENLİ FİYAT MANTIĞI
     const price = pack.product?.price || 0;
     const currencyCode = pack.product?.currencyCode || 'USD';
-    
+
     // Currency code'u sembole çevir
     const getCurrencySymbol = (code: string) => {
         const currencyMap: { [key: string]: string } = {
@@ -46,7 +49,7 @@ const PackageItem = ({ pack, isSelected, onSelect, savings, purchasing }: {
         };
         return currencyMap[code] || code;
     };
-    
+
     const currencySymbol = getCurrencySymbol(currencyCode);
 
     const displayPrice = isAnnual && price > 0
@@ -85,7 +88,7 @@ const PackageItem = ({ pack, isSelected, onSelect, savings, purchasing }: {
             >
                 {/* SAVINGS BADGE */}
                 {isAnnual && savings ? (
-                    <View 
+                    <View
                         className="absolute -top-3 right-4 bg-green-500 px-3 py-1 rounded-full z-10"
                         style={{
                             shadowColor: '#000',
@@ -96,7 +99,7 @@ const PackageItem = ({ pack, isSelected, onSelect, savings, purchasing }: {
                         }}
                     >
                         <Text className="text-white font-inter-bold text-xs">
-                            SAVE {savings}%
+                            {t('common.save')} {savings}%
                         </Text>
                     </View>
                 ) : null}
@@ -112,11 +115,11 @@ const PackageItem = ({ pack, isSelected, onSelect, savings, purchasing }: {
 
                             <View>
                                 <Text className={`font-inter-bold text-lg ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>
-                                    {isAnnual ? 'Annual Access' : 'Monthly Access'}
+                                    {isAnnual ? t('paywall.annual') : t('paywall.monthly')}
                                 </Text>
                                 {isAnnual && (
                                     <Text className="text-indigo-600/80 font-inter-medium text-xs mt-0.5">
-                                        {pack.product?.priceString}/year
+                                        {pack.product?.priceString}/{t('common.year')}
                                     </Text>
                                 )}
                             </View>
@@ -128,7 +131,7 @@ const PackageItem = ({ pack, isSelected, onSelect, savings, purchasing }: {
                                 {finalPriceString}
                             </Text>
                             <Text className="text-slate-400 font-inter-medium text-xs">
-                                /month
+                                /{t('common.month')}
                             </Text>
                         </View>
                     </View>
@@ -138,28 +141,29 @@ const PackageItem = ({ pack, isSelected, onSelect, savings, purchasing }: {
     );
 };
 
-const FEATURE_LIST = [
+const getFeatureList = (t: any) => [
     {
         id: 1,
-        title: 'AI Personal Stylist',
+        title: t('paywall.features.stylist.title'),
         icon: 'sparkles',
-        desc: 'Get daily outfit suggestions perfectly matched to weather & occasion.'
+        desc: t('paywall.features.stylist.desc')
     },
     {
         id: 2,
-        title: 'Digitize Your Wardrobe',
+        title: t('paywall.features.wardrobe.title'),
         icon: 'infinite',
-        desc: 'Add unlimited clothes. Carry your entire closet in your pocket.'
+        desc: t('paywall.features.wardrobe.desc')
     },
     {
         id: 3,
-        title: 'Zero Distractions',
+        title: t('paywall.features.distractions.title'),
         icon: 'diamond-outline',
-        desc: 'Enjoy a completely ad-free, focused styling experience.'
+        desc: t('paywall.features.distractions.desc')
     },
 ];
 
 export default function PaywallScreen() {
+    const { t } = useTranslation();
     const insets = useSafeAreaInsets();
     const { refreshPremiumStatus } = useAuth();
     const [loading, setLoading] = useState(true);
@@ -167,6 +171,8 @@ export default function PaywallScreen() {
     const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
     const [purchasing, setPurchasing] = useState(false);
     const router = useRouter();
+    const { refreshItems } = useWardrobe();
+    const FEATURE_LIST = getFeatureList(t);
 
     useEffect(() => {
         loadOfferings();
@@ -193,7 +199,7 @@ export default function PaywallScreen() {
             }
         } catch (e) {
             console.error('Error loading offerings:', e);
-            Alert.alert('Error', 'Could not load subscription options.');
+            Alert.alert(t('common.error'), t('paywall.loadError'));
         } finally {
             setLoading(false);
         }
@@ -213,6 +219,7 @@ export default function PaywallScreen() {
             if (customerInfo.entitlements.active['Wardrobe Pro']) {
                 console.log('Purchase successful! Updating context...');
                 await refreshPremiumStatus();
+                refreshItems(); // Start refresh without awaiting - loading state will be active during navigation
                 console.log('Context updated. Navigating back...');
                 // Navigation'ı güvenli şekilde kullan
                 await new Promise(resolve => setTimeout(resolve, 100));
@@ -231,7 +238,7 @@ export default function PaywallScreen() {
         } catch (e: any) {
             console.error('Purchase error:', e);
             if (!e.userCancelled) {
-                Alert.alert('Purchase Error', e.message || 'An error occurred during purchase');
+                Alert.alert(t('paywall.purchaseError'), e.message || 'An error occurred during purchase');
             }
         } finally {
             setPurchasing(false);
@@ -244,7 +251,8 @@ export default function PaywallScreen() {
             const customerInfo = await RevenueCatService.restorePurchases();
             if (customerInfo.entitlements.active['Wardrobe Pro']) {
                 await refreshPremiumStatus();
-                Alert.alert('Success', 'Subscription restored successfully!');
+                refreshItems(); // Start refresh without awaiting - loading state will be active during navigation
+                Alert.alert(t('common.success'), t('paywall.restoreSuccess'));
                 // Navigation'ı güvenli şekilde kullan
                 try {
                     if (router.canGoBack()) {
@@ -257,10 +265,10 @@ export default function PaywallScreen() {
                     router.replace('/(tabs)/wardrobe');
                 }
             } else {
-                Alert.alert('Info', 'No active subscription found to restore.');
+                Alert.alert(t('common.info'), t('paywall.noActiveSubscription'));
             }
         } catch (e) {
-            Alert.alert('Error', 'Could not restore purchases.');
+            Alert.alert(t('common.error'), t('paywall.restoreError'));
         } finally {
             setLoading(false);
         }
@@ -311,9 +319,9 @@ export default function PaywallScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 {/* Navbar Area */}
-                <Animated.View 
+                <Animated.View
                     entering={FadeIn.duration(300).delay(100)}
-                    style={{ paddingTop: insets.top }} 
+                    style={{ paddingTop: insets.top }}
                     className="px-6 pb-4"
                 >
                     <TouchableOpacity
@@ -324,30 +332,30 @@ export default function PaywallScreen() {
                     </TouchableOpacity>
                 </Animated.View>
 
-                <Animated.View 
+                <Animated.View
                     entering={FadeInDown.duration(500).delay(200)}
                     className="px-6 mb-8 mt-2"
                 >
                     <View>
-                        <Animated.View 
+                        <Animated.View
                             entering={FadeInRight.duration(400).delay(300)}
                             className="bg-indigo-500/30 self-start px-3 py-1 rounded-full border border-indigo-400/30 mb-3"
                         >
                             <Text className="text-indigo-100 font-inter-bold text-xs uppercase tracking-wider">
-                                Premium Upgrade
+                                {t('paywall.upgrade')}
                             </Text>
                         </Animated.View>
                         <Text className="text-white font-inter-black text-4xl leading-tight">
-                            Unlock Your{'\n'}Best Style
+                            {t('paywall.title')}
                         </Text>
                         <Text className="text-indigo-100/80 text-base mt-2 font-inter-medium">
-                            Join thousands of users who dress better every day.
+                            {t('paywall.subtitle')}
                         </Text>
                     </View>
                 </Animated.View>
 
                 {/* Features Card */}
-                <Animated.View 
+                <Animated.View
                     entering={FadeInUp.duration(600).delay(400)}
                     className="mx-6 bg-white rounded-3xl p-6"
                     style={{
@@ -376,20 +384,20 @@ export default function PaywallScreen() {
                 </Animated.View>
 
                 {/* Plans Selection */}
-                <Animated.View 
+                <Animated.View
                     entering={FadeInUp.duration(500).delay(800)}
                     className="px-6 mt-8"
                 >
-                    <Text className="text-slate-900 font-inter-bold text-lg mb-4">Choose Your Plan</Text>
+                    <Text className="text-slate-900 font-inter-bold text-lg mb-4">{t('paywall.choosePlan')}</Text>
 
                     {packages.length === 0 ? (
-                        <Animated.View 
+                        <Animated.View
                             entering={FadeIn.duration(400)}
                             className="bg-white p-6 rounded-2xl items-center border border-slate-200"
                         >
                             <Ionicons name="alert-circle-outline" size={48} color="#94a3b8" />
                             <Text className="text-slate-500 text-center mt-4 font-inter-medium">
-                                No plans found.
+                                {t('paywall.noPlans')}
                             </Text>
                         </Animated.View>
                     ) : (
@@ -411,13 +419,13 @@ export default function PaywallScreen() {
                 </Animated.View>
 
                 {/* Legal Links */}
-                <Animated.View 
+                <Animated.View
                     entering={FadeIn.duration(400).delay(1200)}
                     className="flex-row justify-center mt-4 mb-8 space-x-4"
                 >
-                    <TouchableOpacity><Text className="text-slate-400 text-xs">Terms of Service</Text></TouchableOpacity>
+                    <TouchableOpacity><Text className="text-slate-400 text-xs">{t('paywall.terms')}</Text></TouchableOpacity>
                     <Text className="text-slate-300 text-xs">•</Text>
-                    <TouchableOpacity><Text className="text-slate-400 text-xs">Privacy Policy</Text></TouchableOpacity>
+                    <TouchableOpacity><Text className="text-slate-400 text-xs">{t('paywall.privacy')}</Text></TouchableOpacity>
                 </Animated.View>
             </ScrollView>
 
@@ -429,17 +437,17 @@ export default function PaywallScreen() {
             >
                 {/* Satın alma butonu kaldırıldı, sadece restore var */}
                 {purchasing && (
-                    <Animated.View 
+                    <Animated.View
                         entering={FadeIn.duration(300)}
                         className="mb-4"
                     >
                         <ActivityIndicator color="#4F46E5" />
-                        <Text className="text-center text-slate-500 text-xs mt-2">Processing...</Text>
+                        <Text className="text-center text-slate-500 text-xs mt-2">{t('common.loading')}</Text>
                     </Animated.View>
                 )}
 
                 <TouchableOpacity onPress={handleRestore} className="items-center py-2">
-                    <Text className="text-slate-400 text-xs font-inter-medium">Restore Purchases</Text>
+                    <Text className="text-slate-400 text-xs font-inter-medium">{t('paywall.restore')}</Text>
                 </TouchableOpacity>
             </Animated.View>
         </View>

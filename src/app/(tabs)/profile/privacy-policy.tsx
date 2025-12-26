@@ -4,30 +4,32 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInRight } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 export default function PrivacyPolicyPage() {
     const router = useRouter();
     const { top } = useSafeAreaInsets();
+    const { t } = useTranslation();
 
     const sections = [
         {
-            title: "Data Collection",
-            content: "We collect certain information about how you use our app, including your wardrobe items, outfit preferences, and usage analytics to improve our AI generation.",
+            title: t('privacyPolicy.sections.collection.title'),
+            content: t('privacyPolicy.sections.collection.content'),
             icon: "database-outline" as const
         },
         {
-            title: "Data Security",
-            content: "Your data is stored securely using Supabase. We prioritize the security and confidentiality of your personal information and wardrobe data.",
+            title: t('privacyPolicy.sections.security.title'),
+            content: t('privacyPolicy.sections.security.content'),
             icon: "shield-lock-outline" as const
         },
         {
-            title: "Third-Party Services",
-            content: "We use third-party services like Google Vision and Gemini for image analysis. These services only receive the images you choose to upload for wardrobe processing.",
+            title: t('privacyPolicy.sections.thirdParty.title'),
+            content: t('privacyPolicy.sections.thirdParty.content'),
             icon: "api" as const
         },
         {
-            title: "Your Rights",
-            content: "You have the right to access, correct, or delete your data at any time through the app settings or by contacting our support team.",
+            title: t('privacyPolicy.sections.rights.title'),
+            content: t('privacyPolicy.sections.rights.content'),
             icon: "gavel" as const
         }
     ];
@@ -45,15 +47,15 @@ export default function PrivacyPolicyPage() {
                 >
                     <Ionicons name="chevron-back" size={24} color="#1e293b" />
                 </TouchableOpacity>
-                <Text className="text-xl font-black text-slate-900">Privacy Policy</Text>
+                <Text className="text-xl font-black text-slate-900">{t('privacyPolicy.title')}</Text>
                 <View className="w-12" />
             </View>
 
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
                 <View className="px-6 pt-6">
                     <View className="bg-[#3A1AEB]/5 p-6 rounded-[32px] border border-[#3A1AEB]/10 mb-8">
-                        <Text className="text-[#3A1AEB] font-inter-bold font-bold text-sm uppercase tracking-widest mb-2">Last Updated</Text>
-                        <Text className="text-slate-900 font-black font-inter-black text-2xl">December 2025</Text>
+                        <Text className="text-[#3A1AEB] font-inter-bold font-bold text-sm uppercase tracking-widest mb-2">{t('privacyPolicy.lastUpdated')}</Text>
+                        <Text className="text-slate-900 font-black font-inter-black text-2xl">{t('privacyPolicy.date')}</Text>
                     </View>
 
                     {sections.map((section, index) => (
@@ -72,7 +74,7 @@ export default function PrivacyPolicyPage() {
 
                     <View className="mt-4 p-6 bg-slate-50 rounded-[32px] border border-slate-100">
                         <Text className="text-slate-400 text-xs text-center font-inter-medium leading-5">
-                            By using Ornatus, you agree to the collection and use of information in accordance with this policy. We may update this policy periodically.
+                            {t('privacyPolicy.footer')}
                         </Text>
                     </View>
                 </View>

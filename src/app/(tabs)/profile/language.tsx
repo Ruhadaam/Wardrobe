@@ -4,11 +4,13 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInRight } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 export default function LanguagePage() {
     const router = useRouter();
     const { top } = useSafeAreaInsets();
-    const [selectedLanguage, setSelectedLanguage] = useState('en');
+    const { t, i18n } = useTranslation();
+    const [selectedLanguage, setSelectedLanguage] = useState(i18n.language || 'en');
 
     const languages = [
         { id: 'en', name: 'English', native: 'English', flag: '🇺🇸' },
@@ -17,6 +19,10 @@ export default function LanguagePage() {
         { id: 'fr', name: 'French', native: 'Français', flag: '🇫🇷' },
         { id: 'de', name: 'German', native: 'Deutsch', flag: '🇩🇪' },
         { id: 'it', name: 'Italian', native: 'Italiano', flag: '🇮🇹' },
+        { id: 'zh', name: 'Chinese', native: '中文', flag: '🇨🇳' },
+        { id: 'ja', name: 'Japanese', native: '日本語', flag: '🇯🇵' },
+        { id: 'ko', name: 'Korean', native: '한국어', flag: '🇰🇷' },
+        { id: 'ar', name: 'Arabic', native: 'العربية', flag: '🇸🇦' },
     ];
 
     return (
@@ -32,20 +38,23 @@ export default function LanguagePage() {
                 >
                     <Ionicons name="chevron-back" size={24} color="#1e293b" />
                 </TouchableOpacity>
-                <Text className="text-xl font-black text-slate-900">Language</Text>
+                <Text className="text-xl font-black text-slate-900">{t('language.title')}</Text>
                 <View className="w-12" />
             </View>
 
             <ScrollView className="flex-1 pt-6" showsVerticalScrollIndicator={false}>
                 <View className="px-6 mb-8">
-                    <Text className="text-slate-400 font-black text-xs uppercase tracking-[3px] mb-4 ml-2">Select Language</Text>
+                    <Text className="text-slate-400 font-black text-xs uppercase tracking-[3px] mb-4 ml-2">{t('language.select')}</Text>
                     <View className="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm">
                         {languages.map((lang, index) => {
                             const isSelected = selectedLanguage === lang.id;
                             return (
                                 <TouchableOpacity
                                     key={lang.id}
-                                    onPress={() => setSelectedLanguage(lang.id)}
+                                    onPress={() => {
+                                        setSelectedLanguage(lang.id);
+                                        i18n.changeLanguage(lang.id);
+                                    }}
                                     activeOpacity={0.7}
                                     className={`flex-row items-center p-6 ${index !== languages.length - 1 ? 'border-b border-slate-50' : ''}`}
                                 >
@@ -71,10 +80,10 @@ export default function LanguagePage() {
                     <View className="p-6 bg-slate-50 rounded-[32px] border border-slate-100">
                         <View className="flex-row items-center mb-2">
                             <Ionicons name="information-circle-outline" size={18} color="#64748b" />
-                            <Text className="text-slate-500 font-bold ml-2 text-xs uppercase tracking-wider">Note</Text>
+                            <Text className="text-slate-500 font-bold ml-2 text-xs uppercase tracking-wider">{t('language.note')}</Text>
                         </View>
                         <Text className="text-slate-400 text-[11px] font-inter-medium leading-5">
-                            Changing the language will update the user interface. Some AI-generated content might still appear in the language it was created.
+                            {t('language.noteDesc')}
                         </Text>
                     </View>
                 </View>

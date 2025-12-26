@@ -1,5 +1,6 @@
 import "../global.css";
 import "react-native-reanimated";
+import "../i18n"; // Initialize i18n
 import { Slot, useRouter, useSegments, Stack, Redirect } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -18,12 +19,13 @@ import {
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "../providers/AuthProvider";
-import { WardrobeProvider } from "../providers/WardrobeProvider";
+import { WardrobeProvider, useWardrobe } from "../providers/WardrobeProvider";
 
 SplashScreen.preventAutoHideAsync();
 
 function InitialLayout() {
   const { session, loading, isPremium } = useAuth();
+  const { initialLoadComplete } = useWardrobe();
   const segments = useSegments();
   const router = useRouter();
 
@@ -36,7 +38,8 @@ function InitialLayout() {
   });
 
   useEffect(() => {
-    if (loading) return;
+    // Wait for auth loading AND wardrobe initial load to complete
+    if (loading || !initialLoadComplete) return;
 
     const initApp = async () => {
       // Initialize RevenueCat
@@ -53,25 +56,24 @@ function InitialLayout() {
     };
 
     initApp();
-  }, [fontsLoaded, fontError, loading]);
+  }, [fontsLoaded, fontError, loading, initialLoadComplete]);
 
-  /*
-    useEffect(() => {
-      if (loading) return;
-  
-      const inAuthGroup = segments[0] === '(auth)';
-  
-      if (!session && !inAuthGroup) {
-        router.replace('/(auth)/login');
-      } else if (session && inAuthGroup) {
-        router.replace('/(tabs)/wardrobe');
-      }
-    }, [session, loading, segments]);
-  */
+  useEffect(() => {
+    if (loading) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (!session && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    } else if (session && inAuthGroup) {
+      router.replace('/(tabs)/wardrobe');
+    }
+  }, [session, loading, segments]);
 
 
 
-  if ((Platform.OS === 'android' && !fontsLoaded && !fontError) || loading) {
+  // Wait for fonts, auth loading, AND wardrobe initial load
+  if ((Platform.OS === 'android' && !fontsLoaded && !fontError) || loading || !initialLoadComplete) {
     return null;
   }
 

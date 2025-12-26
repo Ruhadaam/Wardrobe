@@ -4,9 +4,11 @@ import { NativeTabs, Icon, Label, VectorIcon } from 'expo-router/unstable-native
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Header from "../../components/Header";
+import { useTranslation } from 'react-i18next';
 
 // iOS Implementation - Native Tabs
 function IOSTabBar() {
+  const { t } = useTranslation();
   return (
     <NativeTabs
       tintColor="#3A1AEB"
@@ -15,22 +17,22 @@ function IOSTabBar() {
       }}
     >
       <NativeTabs.Trigger name="wardrobe">
-        <Label>wardrobe</Label>
+        <Label>{t('tabs.wardrobe')}</Label>
         <Icon sf={{ default: 'tshirt', selected: 'tshirt.fill' }} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="outfit">
-        <Label>Combine</Label>
+        <Label>{t('tabs.outfit')}</Label>
         <Icon sf="bag" />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="history">
-        <Label>History</Label>
+        <Label>{t('tabs.history')}</Label>
         <Icon sf={{ default: 'clock', selected: 'clock.fill' }} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="profile">
-        <Label>Profile</Label>
+        <Label>{t('tabs.profile')}</Label>
         <Icon sf={{ default: 'person', selected: 'person.fill' }} />
       </NativeTabs.Trigger>
     </NativeTabs>
@@ -40,6 +42,7 @@ function IOSTabBar() {
 // Android Implementation - Custom Modern Tabs
 function AndroidTabBar() {
   const { bottom } = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const tabBarStyle = {
     position: 'absolute' as const,
@@ -87,7 +90,7 @@ function AndroidTabBar() {
       <Tabs.Screen
         name="wardrobe"
         options={{
-          title: "wardrobe",
+          title: t('tabs.wardrobe'),
           tabBarIcon: ({ color, focused }) => (
             <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-50' : ''}`}>
               <MaterialCommunityIcons name={focused ? "wardrobe" : "wardrobe-outline"} size={24} color={color} />
@@ -98,7 +101,7 @@ function AndroidTabBar() {
       <Tabs.Screen
         name="outfit"
         options={{
-          title: "Combine",
+          title: t('tabs.outfit'),
           tabBarIcon: ({ color, focused }) => (
             <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-50' : ''}`}>
               <MaterialIcons name="checkroom" size={24} color={color} />
@@ -109,7 +112,7 @@ function AndroidTabBar() {
       <Tabs.Screen
         name="history"
         options={{
-          title: "History",
+          title: t('tabs.history'),
           tabBarIcon: ({ color, focused }) => (
             <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-50' : ''}`}>
               <MaterialIcons name="history" size={24} color={color} />
@@ -121,7 +124,7 @@ function AndroidTabBar() {
         name="profile"
         options={{
           headerShown: false,
-          title: "Profile",
+          title: t('tabs.profile'),
           tabBarIcon: ({ color, focused }) => (
             <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-50' : ''}`}>
               <MaterialIcons name={focused ? "person" : "person-outline"} size={24} color={color} />

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import { WardrobeItem } from '../services/visionApi';
 import { formatLabel } from '../utils/textUtils';
+import { useTranslation } from 'react-i18next';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.7;
@@ -29,6 +30,7 @@ export default function OutfitViewModal({
     onDelete
 }: OutfitViewModalProps) {
     const scrollX = useRef(new Animated.Value(0)).current;
+    const { t } = useTranslation();
 
     return (
         <Modal
@@ -53,10 +55,10 @@ export default function OutfitViewModal({
 
                 <View className="absolute top-20 left-0 right-0 items-center z-10">
                     <Text className="text-slate-900 text-2xl font-black font-inter-black tracking-tight">
-                        Perfect Match!
+                        {t('outfitView.title')}
                     </Text>
                     <Text className="text-slate-500 text-sm font-inter-medium mt-1">
-                        Swipe to explore your outfit
+                        {t('outfitView.subtitle')}
                     </Text>
                 </View>
 
@@ -132,14 +134,14 @@ export default function OutfitViewModal({
                                             {formatLabel(item.analysis?.basic_info?.sub_category || item.basic_info?.sub_category || item.analysis?.basic_info?.category || item.basic_info?.category)}
                                         </Text>
                                         <Text className="text-slate-500 text-base font-inter-medium capitalize mt-1">
-                                            {formatLabel(item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color || 'Unknown Color')} • {formatLabel(item.analysis?.context?.formality || item.context?.formality || 'Casual')}
+                                            {formatLabel(item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color || t('outfitView.unknownColor'))} • {formatLabel(item.analysis?.context?.formality || item.context?.formality || t('outfitView.casual'))}
                                         </Text>
                                     </View>
 
                                     <View className="flex-row items-center">
                                         <View className="bg-[#3A1AEB]/10 px-4 py-2 rounded-2xl">
                                             <Text className="text-[#3A1AEB] text-xs font-black font-inter-black uppercase tracking-widest">
-                                                SELECTED ITEM
+                                                {t('outfitView.selectedItem')}
                                             </Text>
                                         </View>
                                     </View>
@@ -157,7 +159,7 @@ export default function OutfitViewModal({
                     activeOpacity={0.9}
                 >
                     <Ionicons name="sparkles" size={20} color="white" />
-                    <Text className="text-white font-black font-inter-black text-lg ml-3">PERFECT!</Text>
+                    <Text className="text-white font-black font-inter-black text-lg ml-3">{t('outfitView.perfect')}</Text>
                 </TouchableOpacity>
 
             </View>

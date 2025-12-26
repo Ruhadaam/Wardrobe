@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, Alert, Dimensions } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase, auth } from '../../lib/supabase';
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from '../../components/LanguageSelector';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function Login() {
     const router = useRouter();
+    const { t } = useTranslation();
+    const { top } = useSafeAreaInsets();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -16,7 +21,7 @@ export default function Login() {
         const { error } = await auth.signIn(email, password);
 
         if (error) {
-            Alert.alert('Error', error.message);
+            Alert.alert(t('common.error'), error.message);
         }
         setLoading(false);
     }
@@ -24,29 +29,35 @@ export default function Login() {
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            className="flex-1 bg-slate-900"
+            style={{ flex: 1, backgroundColor: '#fff' }}
         >
             <StatusBar style="dark" />
+
+            {/* Language Selector absolute position */}
+            <View className="absolute right-6 z-10" style={{ top: top + 10 }}>
+                <LanguageSelector />
+            </View>
+
             <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
                 <View className="p-8 w-full max-w-md mx-auto">
 
                     <View className="items-center mb-10">
-                        <View className="w-20 h-20 bg-cyan-500/10 rounded-full items-center justify-center mb-4 border border-cyan-500/20">
-                            <MaterialCommunityIcons name="wardrobe" size={40} color="#06b6d4" />
+                        <View className="w-20 h-20 bg-[#3A1AEB]/5 rounded-full items-center justify-center mb-6 border border-[#3A1AEB]/10">
+                            <MaterialCommunityIcons name="wardrobe" size={40} color="#3A1AEB" />
                         </View>
-                        <Text className="text-3xl font-bold text-white tracking-tight">Welcome</Text>
-                        <Text className="text-slate-400 mt-2 text-center">Sign in to access your digital wardrobe</Text>
+                        <Text className="text-3xl font-black font-inter-black text-slate-900 tracking-tight text-center">{t('auth.welcome')}</Text>
+                        <Text className="text-slate-500 mt-3 text-center font-inter-medium leading-6">{t('auth.signInSubtitle')}</Text>
                     </View>
 
                     <View className="space-y-4">
                         <View>
-                            <Text className="text-slate-300 mb-2 font-medium ml-1">Email</Text>
-                            <View className="flex-row items-center bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 focus:border-cyan-500 transition-colors">
-                                <MaterialCommunityIcons name="email-outline" size={20} color="#94a3b8" />
+                            <Text className="text-slate-700 mb-2 font-bold font-inter-bold ml-1 text-sm">{t('auth.email')}</Text>
+                            <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 focus:border-[#3A1AEB] transition-colors">
+                                <MaterialCommunityIcons name="email-outline" size={20} color="#64748b" />
                                 <TextInput
-                                    className="flex-1 ml-3 text-white"
-                                    placeholder="Enter your email"
-                                    placeholderTextColor="#64748b"
+                                    className="flex-1 ml-3 text-slate-900 font-inter-medium"
+                                    placeholder={t('auth.emailPlaceholder')}
+                                    placeholderTextColor="#94a3b8"
                                     value={email}
                                     onChangeText={setEmail}
                                     autoCapitalize="none"
@@ -56,13 +67,13 @@ export default function Login() {
                         </View>
 
                         <View>
-                            <Text className="text-slate-300 my-2 font-medium ml-1">Password</Text>
-                            <View className="flex-row items-center bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 focus:border-cyan-500 transition-colors">
-                                <MaterialCommunityIcons name="lock-outline" size={20} color="#94a3b8" />
+                            <Text className="text-slate-700 mb-2 font-bold font-inter-bold ml-1 text-sm">{t('auth.password')}</Text>
+                            <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 focus:border-[#3A1AEB] transition-colors">
+                                <MaterialCommunityIcons name="lock-outline" size={20} color="#64748b" />
                                 <TextInput
-                                    className="flex-1 ml-3 text-white"
-                                    placeholder="Enter your password"
-                                    placeholderTextColor="#64748b"
+                                    className="flex-1 ml-3 text-slate-900 font-inter-medium"
+                                    placeholder={t('auth.passwordPlaceholder')}
+                                    placeholderTextColor="#94a3b8"
                                     value={password}
                                     onChangeText={setPassword}
                                     secureTextEntry
@@ -73,32 +84,32 @@ export default function Login() {
                         <TouchableOpacity
                             className="items-end"
                         >
-                            <Text className="text-cyan-400 text-sm m-4 font-medium">Forgot Password?</Text>
+                            <Text className="text-[#3A1AEB] text-sm m-2 font-bold font-inter-bold">{t('auth.forgotPassword')}</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
                             onPress={signInWithEmail}
                             disabled={loading}
-                            className={`bg-cyan-500 py-4 rounded-xl items-center shadow-lg shadow-cyan-500/30 ${loading ? 'opacity-70' : ''}`}
+                            className={`bg-[#3A1AEB] py-4 rounded-[20px] items-center shadow-xl shadow-[#3A1AEB]/30 mt-2 ${loading ? 'opacity-70' : ''}`}
                         >
                             {loading ? (
-                                <Text className="text-white font-bold text-lg">Signing in...</Text>
+                                <Text className="text-white font-bold font-inter-bold text-lg">{t('auth.signingIn')}</Text>
                             ) : (
-                                <Text className="text-white font-bold text-lg">Sign In</Text>
+                                <Text className="text-white font-bold font-inter-bold text-lg">{t('auth.signIn')}</Text>
                             )}
                         </TouchableOpacity>
                     </View>
 
-                    <View className="flex-row justify-center mt-8">
-                        <Text className="text-slate-400">Don't have an account? </Text>
+                    <View className="flex-row justify-center mt-10">
+                        <Text className="text-slate-500 font-inter-medium">{t('auth.noAccount')} </Text>
                         <Link href="/(auth)/register" asChild>
                             <TouchableOpacity>
-                                <Text className="text-cyan-400 font-bold">Sign Up</Text>
+                                <Text className="text-[#3A1AEB] font-bold font-inter-bold">{t('auth.signUp')}</Text>
                             </TouchableOpacity>
                         </Link>
                     </View>
                 </View>
             </ScrollView>
-        </KeyboardAvoidingView>
+        </KeyboardAvoidingView >
     );
 }

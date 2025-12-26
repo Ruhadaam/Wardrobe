@@ -7,12 +7,14 @@ import Toast from 'react-native-toast-message';
 interface WardrobeContextType {
     items: WardrobeItem[];
     loading: boolean;
+    initialLoadComplete: boolean;
     refreshItems: () => Promise<void>;
 }
 
 const WardrobeContext = createContext<WardrobeContextType>({
     items: [],
     loading: false,
+    initialLoadComplete: false,
     refreshItems: async () => { },
 });
 
@@ -22,12 +24,15 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     const { user } = useAuth();
     const [items, setItems] = useState<WardrobeItem[]>([]);
     const [loading, setLoading] = useState(false);
+    const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
     useEffect(() => {
         if (user) {
             loadItems();
         } else {
             setItems([]);
+            // If no user, mark as complete so splash can hide
+            setInitialLoadComplete(true);
         }
     }, [user]);
 
@@ -58,6 +63,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
             });
         } finally {
             setLoading(false);
+            setInitialLoadComplete(true);
         }
     };
 
@@ -78,8 +84,9 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <WardrobeContext.Provider value={{ items, loading, refreshItems }}>
+        <WardrobeContext.Provider value={{ items, loading, initialLoadComplete, refreshItems }}>
             {children}
         </WardrobeContext.Provider>
     );
 }
+

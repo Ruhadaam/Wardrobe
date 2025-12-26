@@ -24,7 +24,7 @@ import Header from "@/components/Header";
 import { useWardrobe } from "../../providers/WardrobeProvider";
 import { RevenueCatService } from "../../lib/revenuecat";
 import { useRouter } from "expo-router";
-
+import { useTranslation } from 'react-i18next';
 
 
 // op ögelerini ana kategoriye göre gruplayan yardımcı fonksiyon
@@ -48,6 +48,7 @@ const groupItemsByCategory = (items: WardrobeItem[]) => {
 
 export default function WardrobePage() {
     const { top } = useSafeAreaInsets();
+    const { t } = useTranslation();
     const { user, isPremium } = useAuth();
     const { items, loading: isLoading, refreshItems } = useWardrobe();
     const [groupedItems, setGroupedItems] = useState<Record<string, WardrobeItem[]>>({});
@@ -55,21 +56,34 @@ export default function WardrobePage() {
     const [showSourceModal, setShowSourceModal] = useState(false);
     const router = useRouter();
 
+    const getLabel = (key: string | null | undefined) => {
+        if (!key) return '';
+        const options = { defaultValue: '___MISSING___' };
+        let text = t(`filters.${key}`, options);
+        if (text === '___MISSING___') {
+            text = t(`filters.${key.toLowerCase()}`, options);
+        }
+        if (text === '___MISSING___') {
+            return formatLabel(key);
+        }
+        return text;
+    };
+
     useEffect(() => {
         setGroupedItems(groupItemsByCategory(items));
     }, [items]);
 
     const handleDeleteItem = (itemId: string) => {
         Alert.alert(
-            "Delete Item",
-            "Are you sure you want to delete this item? This action cannot be undone.",
+            t('wardrobe.deleteItemTitle'),
+            t('wardrobe.deleteItemConfirm'),
             [
                 {
-                    text: "Cancel",
+                    text: t('common.cancel'),
                     style: "cancel"
                 },
                 {
-                    text: "Delete",
+                    text: t('common.delete'),
                     style: "destructive",
                     onPress: async () => {
                         try {
@@ -80,7 +94,7 @@ export default function WardrobePage() {
 
                             Toast.show({
                                 type: 'success',
-                                text1: 'Item deleted',
+                                text1: t('wardrobe.itemDeleted'),
                                 position: 'top'
                             });
                         } catch (error) {
@@ -91,7 +105,7 @@ export default function WardrobePage() {
                             refreshItems();
                             Toast.show({
                                 type: 'error',
-                                text1: 'Failed to delete item',
+                                text1: t('wardrobe.deleteFailed'),
                                 position: 'top'
                             });
                         }
@@ -103,17 +117,17 @@ export default function WardrobePage() {
 
     const handleAddItem = async () => {
         if (!user) {
-            Toast.show({ type: 'error', text1: 'Please sign in to add items.' });
+            Toast.show({ type: 'error', text1: t('auth.signInRequired') });
             return;
         }
 
         if (isPremium === false && items.length >= 20) {
             Alert.alert(
-                "Wardrobe Limit Reached",
-                "Free accounts can have up to 20 items in their wardrobe. Upgrade to Pro for limitless storage!",
+                t('wardrobe.limitReachedTitle'),
+                t('wardrobe.limitReachedDesc'),
                 [
-                    { text: "Later", style: "cancel" },
-                    { text: "Upgrade to Pro", onPress: () => router.push('/paywall') }
+                    { text: t('wardrobe.later'), style: "cancel" },
+                    { text: t('wardrobe.upgradeToPro'), onPress: () => router.push('/paywall') }
                 ]
             );
             return;
@@ -134,8 +148,8 @@ export default function WardrobePage() {
         if (permissionResult.granted === false) {
             Toast.show({
                 type: 'error',
-                text1: 'Permission Required',
-                text2: `You must grant access to the ${type === 'library' ? 'gallery' : 'camera'} to add clothes.`,
+                text1: t('wardrobe.permissionRequired'),
+                text2: t('wardrobe.permissionDesc', { type: type === 'library' ? t('wardrobe.gallery') : t('wardrobe.camera') }),
                 position: 'top',
             });
             return;
@@ -164,8 +178,8 @@ export default function WardrobePage() {
         setIsAnalyzing(true);
         Toast.show({
             type: 'info',
-            text1: 'Processing...',
-            text2: 'Analyzing and saving to your wardrobe.',
+            text1: t('common.loading'),
+            text2: t('wardrobe.analyzing'),
             position: 'top',
             visibilityTime: 4000,
         });
@@ -192,25 +206,25 @@ export default function WardrobePage() {
             const categoryValue = newItem.analysis?.basic_info?.category || newItem.basic_info?.category || newItem.classification?.main_category || null;
             const subCategoryValue = newItem.analysis?.basic_info?.sub_category || newItem.basic_info?.sub_category || newItem.classification?.sub_category || null;
 
-            const category = categoryValue ? formatLabel(categoryValue) : '';
-            const subCategory = subCategoryValue ? formatLabel(subCategoryValue) : 'Clothing';
+            const category = categoryValue ? getLabel(categoryValue) : '';
+            const subCategory = subCategoryValue ? getLabel(subCategoryValue) : 'Clothing';
             const categoryText = category ? `${category} / ${subCategory}` : subCategory;
 
             Toast.show({
                 type: 'success',
-                text1: 'Saved!',
-                text2: `${categoryText} added to your wardrobe.`,
+                text1: t('wardrobe.saved'),
+                text2: t('wardrobe.savedDesc', { category: categoryText }),
                 position: 'top',
                 visibilityTime: 3000,
             });
         } catch (error: any) {
             console.error("Wardrobe Process Error:", error);
 
-            const errorMessage = error?.message || 'Technical error occurred. Please try again.';
+            const errorMessage = error?.message || t('wardrobe.technicalError');
 
             Toast.show({
                 type: 'error',
-                text1: 'Oops!',
+                text1: t('common.oops'),
                 text2: errorMessage,
                 position: 'top',
                 visibilityTime: 5000,
@@ -232,12 +246,12 @@ export default function WardrobePage() {
                 <View className="flex-row justify-between items-center mb-5">
                     <View>
                         <Text className="text-4xl font-black font-inter-black text-slate-900 mb-1 tracking-tight">
-                            Wardrobe
+                            {t('wardrobe.title')}
                         </Text>
                         <View className="flex-row items-center gap-2">
                             <View className="h-2 w-2 rounded-full bg-[#3A1AEB]" />
                             <Text className="text-sm font-medium font-inter-medium text-slate-500">
-                                {items.length} {items.length === 1 ? 'item' : 'items'}
+                                {t(items.length === 1 ? 'wardrobe.item_one' : 'wardrobe.item_other', { count: items.length })}
                             </Text>
                         </View>
                     </View>
@@ -254,7 +268,7 @@ export default function WardrobePage() {
                         }}
                     >
                         <Ionicons name="add-circle" size={22} color="white" />
-                        <Text className="text-white font-bold font-inter-bold ml-2 text-base">New</Text>
+                        <Text className="text-white font-bold font-inter-bold ml-2 text-base">{t('wardrobe.new')}</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -275,7 +289,7 @@ export default function WardrobePage() {
                                 <View className="bg-[#3A1AEB]/10 p-2 rounded-xl">
                                     <Ionicons name="cloud-upload" size={18} color="#3A1AEB" />
                                 </View>
-                                <Text className="text-base font-bold font-inter-bold text-slate-800">Free Plan Limit</Text>
+                                <Text className="text-base font-bold font-inter-bold text-slate-800">{t('wardrobe.freePlanLimit')}</Text>
                             </View>
                             <View className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
                                 <Text className="text-sm font-bold font-inter-bold text-slate-600">{items.length}/20</Text>
@@ -290,9 +304,9 @@ export default function WardrobePage() {
                         </View>
 
                         <View className="flex-row justify-between items-center">
-                            <Text className="text-sm font-medium font-inter-medium text-slate-500">Need more space?</Text>
+                            <Text className="text-sm font-medium font-inter-medium text-slate-500">{t('wardrobe.needMoreSpace')}</Text>
                             <TouchableOpacity onPress={() => router.push('/paywall')}>
-                                <Text className="text-sm font-bold font-inter-bold text-[#3A1AEB]">Get Premium</Text>
+                                <Text className="text-sm font-bold font-inter-bold text-[#3A1AEB]">{t('wardrobe.getPremium')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -304,7 +318,23 @@ export default function WardrobePage() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 120, paddingTop: 15 }} // Increased padding for floating tab bar
             >
-                {Object.keys(groupedItems).length === 0 && !isAnalyzing ? (
+                {/* Loading State */}
+                {isLoading && Object.keys(groupedItems).length === 0 ? (
+                    <View className="flex-1 justify-center items-center px-6 mt-32">
+                        <LottieView
+                            source={require("../../assets/animations/loading-2.json")}
+                            autoPlay
+                            loop
+                            style={{ width: 120, height: 120 }}
+                        />
+                        <Text className="text-lg font-bold font-inter-bold text-slate-700 mt-4">
+                            {t('wardrobe.loadingTitle')}
+                        </Text>
+                        <Text className="text-sm text-slate-400 mt-1">
+                            {t('wardrobe.loadingDesc')}
+                        </Text>
+                    </View>
+                ) : Object.keys(groupedItems).length === 0 && !isAnalyzing && !isLoading ? (
                     <View className="flex-1 justify-center items-center px-6 mt-32">
                         <View
                             className="w-32 h-32 rounded-full bg-slate-50 items-center justify-center mb-6 border border-slate-100"
@@ -318,9 +348,9 @@ export default function WardrobePage() {
                         >
                             <MaterialIcons name="checkroom" size={64} color="#3A1AEB" />
                         </View>
-                        <Text className="text-2xl font-bold font-inter-bold text-slate-900 mb-2">Your Wardrobe is Empty</Text>
+                        <Text className="text-2xl font-bold font-inter-bold text-slate-900 mb-2">{t('wardrobe.emptyTitle')}</Text>
                         <Text className="text-base text-slate-500 text-center leading-6">
-                            Start building a beautiful wardrobe{'\n'}by adding your first item!
+                            {t('wardrobe.emptyDesc')}
                         </Text>
                         <TouchableOpacity
                             onPress={handleAddItem}
@@ -333,7 +363,7 @@ export default function WardrobePage() {
                                 elevation: 4,
                             }}
                         >
-                            <Text className="text-white font-semibold font-inter-semibold text-base">Add First Item</Text>
+                            <Text className="text-white font-semibold font-inter-semibold text-base">{t('wardrobe.addFirstItem')}</Text>
                         </TouchableOpacity>
                     </View>
                 ) : (
@@ -353,11 +383,11 @@ export default function WardrobePage() {
                                                 elevation: 6,
                                             }}
                                         />
-                                        <Text className="text-2xl font-black font-inter-black text-slate-900 tracking-tight">{formatLabel(category)}</Text>
+                                        <Text className="text-2xl font-black font-inter-black text-slate-900 tracking-tight">{getLabel(category)}</Text>
                                     </View>
                                     <View className="bg-slate-100 border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
                                         <Text className="text-xs font-bold font-inter-bold text-slate-600">
-                                            {categoryItems.length} {categoryItems.length === 1 ? 'item' : 'items'}
+                                            {t(categoryItems.length === 1 ? 'wardrobe.item_one' : 'wardrobe.item_other', { count: categoryItems.length })}
                                         </Text>
                                     </View>
                                 </View>
@@ -395,7 +425,7 @@ export default function WardrobePage() {
                                                 <View className="absolute top-3 left-3 bg-black/60 rounded-full px-2.5 py-1 backdrop-blur-md border border-white/10">
                                                     {(item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color) && (
                                                         <Text className="text-white text-xs font-semibold font-inter-semibold capitalize">
-                                                            {formatLabel(item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color)}
+                                                            {getLabel(item.analysis?.visual_details?.primary_color || item.visual_details?.primary_color)}
                                                         </Text>
                                                     )}
                                                 </View>
@@ -412,49 +442,49 @@ export default function WardrobePage() {
 
                                             <View className="p-4 bg-white">
                                                 <Text className="text-lg font-bold font-inter-bold text-slate-900 mb-2" numberOfLines={1}>
-                                                    {formatLabel(item.analysis?.basic_info?.sub_category || item.basic_info?.sub_category || item.classification?.sub_category || 'Clothing')}
+                                                    {getLabel(item.analysis?.basic_info?.sub_category || item.basic_info?.sub_category || item.classification?.sub_category || 'Clothing')}
                                                 </Text>
 
                                                 <View className="flex-row flex-wrap gap-1.5">
                                                     {(item.analysis?.attributes?.material || item.attributes?.material) && (
                                                         <View className="bg-[#3A1AEB]/10 border border-[#3A1AEB]/20 px-2.5 py-1 rounded-lg">
                                                             <Text className="text-xs font-bold font-inter-bold text-[#3A1AEB] capitalize">
-                                                                {formatLabel(item.analysis?.attributes?.material || item.attributes?.material)}
+                                                                {getLabel(item.analysis?.attributes?.material || item.attributes?.material)}
                                                             </Text>
                                                         </View>
                                                     )}
                                                     {(item.analysis?.attributes?.style || item.attributes?.style) && (
                                                         <View className="bg-fuchsia-100 border border-fuchsia-200 px-2.5 py-1 rounded-lg">
                                                             <Text className="text-xs font-bold font-inter-bold text-fuchsia-600 capitalize">
-                                                                {formatLabel(item.analysis?.attributes?.style || item.attributes?.style)}
+                                                                {getLabel(item.analysis?.attributes?.style || item.attributes?.style)}
                                                             </Text>
                                                         </View>
                                                     )}
                                                     {((item.analysis?.visual_details?.pattern && item.analysis.visual_details.pattern !== 'plain') || (item.visual_details?.pattern && item.visual_details.pattern !== 'plain')) && (
                                                         <View className="bg-violet-100 border border-violet-200 px-2.5 py-1 rounded-lg">
                                                             <Text className="text-xs font-bold font-inter-bold text-violet-600 capitalize">
-                                                                {formatLabel(item.analysis?.visual_details?.pattern || item.visual_details?.pattern)}
+                                                                {getLabel(item.analysis?.visual_details?.pattern || item.visual_details?.pattern)}
                                                             </Text>
                                                         </View>
                                                     )}
                                                     {(item.analysis?.context?.formality || item.context?.formality) && (
                                                         <View className="bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg">
                                                             <Text className="text-xs font-bold font-inter-bold text-amber-600 capitalize">
-                                                                {formatLabel(item.analysis?.context?.formality || item.context?.formality)}
+                                                                {getLabel(item.analysis?.context?.formality || item.context?.formality)}
                                                             </Text>
                                                         </View>
                                                     )}
                                                     {((item.analysis?.context?.seasons || item.context?.seasons || []).filter(s => s !== 'all_seasons').slice(0, 1)).map((season, idx) => (
                                                         <View key={idx} className="bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg">
                                                             <Text className="text-xs font-bold font-inter-bold text-emerald-600 capitalize">
-                                                                {formatLabel(season)}
+                                                                {getLabel(season)}
                                                             </Text>
                                                         </View>
                                                     ))}
                                                     {(item.analysis?.context?.seasons || item.context?.seasons || []).includes('all_seasons') && (
                                                         <View className="bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg">
                                                             <Text className="text-xs font-bold font-inter-bold text-emerald-600 capitalize">
-                                                                All Seasons
+                                                                {getLabel('All Seasons')}
                                                             </Text>
                                                         </View>
                                                     )}
@@ -491,9 +521,9 @@ export default function WardrobePage() {
                             loop
                             style={{ width: 140, height: 140 }}
                         />
-                        <Text className="text-slate-900 font-black font-inter-black text-xl mt-2">Analyzing Outfit</Text>
+                        <Text className="text-slate-900 font-black font-inter-black text-xl mt-2">{t('wardrobe.analyzingTitle')}</Text>
                         <Text className="text-slate-500 text-sm mt-2 text-center leading-relaxed px-2">
-                            AI is analyzing your outfit...
+                            {t('wardrobe.analyzingDesc')}
                         </Text>
                     </View>
                 </View>
@@ -517,14 +547,14 @@ export default function WardrobePage() {
                     >
                         <View className="items-center mb-6">
                             <View className="w-12 h-1.5 bg-slate-200 rounded-full mb-6" />
-                            <Text className="text-2xl font-black font-inter-black text-slate-900">Add New Item</Text>
-                            <Text className="text-slate-500 font-medium font-inter-medium mt-1">Select where to get your photo from</Text>
+                            <Text className="text-2xl font-black font-inter-black text-slate-900">{t('wardrobe.addNewItem')}</Text>
+                            <Text className="text-slate-500 font-medium font-inter-medium mt-1">{t('wardrobe.selectSource')}</Text>
 
                             {/* Guidance regarding human faces */}
                             <View className="flex-row items-center bg-amber-50 px-4 py-2.5 rounded-2xl mt-4 border border-amber-100">
                                 <Ionicons name="alert-circle" size={20} color="#d97706" />
                                 <Text className="text-amber-800 text-[11px] font-bold font-inter-bold ml-2 flex-1">
-                                    Avoid human faces in your photos for better results and high quality analysis.
+                                    {t('wardrobe.avoidFaces')}
                                 </Text>
                             </View>
                         </View>
@@ -538,8 +568,8 @@ export default function WardrobePage() {
                                 <View className="w-16 h-16 bg-[#3A1AEB]/10 rounded-full items-center justify-center mb-4">
                                     <MaterialCommunityIcons name="camera" size={32} color="#3A1AEB" />
                                 </View>
-                                <Text className="text-slate-900 font-black font-inter-black text-lg">Camera</Text>
-                                <Text className="text-slate-400 text-xs font-bold mt-1">Take a photo</Text>
+                                <Text className="text-slate-900 font-black font-inter-black text-lg">{t('wardrobe.camera')}</Text>
+                                <Text className="text-slate-400 text-xs font-bold mt-1">{t('wardrobe.takePhoto')}</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -550,8 +580,8 @@ export default function WardrobePage() {
                                 <View className="w-16 h-16 bg-blue-500/10 rounded-full items-center justify-center mb-4">
                                     <MaterialCommunityIcons name="image-multiple" size={32} color="#3b82f6" />
                                 </View>
-                                <Text className="text-slate-900 font-black font-inter-black text-lg">Gallery</Text>
-                                <Text className="text-slate-400 text-xs font-bold mt-1">Choose existing</Text>
+                                <Text className="text-slate-900 font-black font-inter-black text-lg">{t('wardrobe.gallery')}</Text>
+                                <Text className="text-slate-400 text-xs font-bold mt-1">{t('wardrobe.chooseExisting')}</Text>
                             </TouchableOpacity>
                         </View>
 
@@ -560,7 +590,7 @@ export default function WardrobePage() {
                             className="mt-6 py-4 bg-slate-100 rounded-2xl items-center"
                             activeOpacity={0.7}
                         >
-                            <Text className="text-slate-600 font-bold font-inter-bold text-base">Cancel</Text>
+                            <Text className="text-slate-600 font-bold font-inter-bold text-base">{t('common.cancel')}</Text>
                         </TouchableOpacity>
                     </TouchableOpacity>
                 </TouchableOpacity>

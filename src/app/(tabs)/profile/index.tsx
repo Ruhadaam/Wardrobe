@@ -6,10 +6,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { RevenueCatService } from "../../../lib/revenuecat";
+import { useTranslation } from 'react-i18next';
 
 
 export default function ProfilePage() {
   const { signOut, profile, user } = useAuth();
+  const { t } = useTranslation();
   const router = useRouter();
   const [isPro, setIsPro] = useState(false);
   const [loadingPro, setLoadingPro] = useState(true);
@@ -30,10 +32,10 @@ export default function ProfilePage() {
   };
 
   const settingsItems = [
-    { id: 'account', label: 'Account Info', icon: 'account-outline', color: '#3A1AEB', route: '/(tabs)/profile/account-info' },
-    { id: 'wardrobe', label: 'Wardrobe Data', icon: 'wardrobe-outline', color: '#EC4899', route: '/(tabs)/profile/wardrobe-data' },
-    { id: 'settings', label: 'App Settings', icon: 'cog-outline', color: '#F59E0B', route: '/(tabs)/profile/settings' },
-    { id: 'support', label: 'Help & Support', icon: 'help-circle-outline', color: '#10B981', route: '/(tabs)/profile/support' },
+    { id: 'account', label: t('profile.menu.account'), icon: 'account-outline', color: '#3A1AEB', route: '/(tabs)/profile/account-info' },
+    { id: 'wardrobe', label: t('profile.menu.wardrobeData'), icon: 'wardrobe-outline', color: '#EC4899', route: '/(tabs)/profile/wardrobe-data' },
+    { id: 'settings', label: t('profile.menu.settings'), icon: 'cog-outline', color: '#F59E0B', route: '/(tabs)/profile/settings' },
+    { id: 'support', label: t('profile.menu.support'), icon: 'help-circle-outline', color: '#10B981', route: '/(tabs)/profile/support' },
   ];
 
   return (
@@ -65,7 +67,7 @@ export default function ProfilePage() {
             onPress={() => router.push('/(tabs)/profile/account-info' as any)}
           >
             <Text className="text-[#3A1AEB] font-black font-inter-black text-sm uppercase tracking-widest">
-              Edit Profile
+              {t('profile.edit')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -88,13 +90,13 @@ export default function ProfilePage() {
                   <MaterialCommunityIcons name={isPro ? "crown-outline" : "diamond-outline"} size={20} color="#3A1AEB" />
                 </View>
                 <Text className="text-slate-900 font-black font-inter-black text-lg">
-                  {loadingPro ? 'Checking Plan...' : isPro ? 'Wardrobe Pro' : 'Wardrobe Free'}
+                  {loadingPro ? t('profile.checking') : isPro ? t('profile.pro') : t('profile.free')}
                 </Text>
               </View>
               <Text className="text-slate-500 font-inter-medium text-sm leading-5 mb-6">
                 {isPro
-                  ? 'Unlimited AI suggestions and full wardrobe analysis active.'
-                  : 'Limited AI suggestions and wardrobe analysis.'}
+                  ? t('profile.proDesc')
+                  : t('profile.freeDesc')}
               </Text>
 
               {!isPro && !loadingPro && (
@@ -104,7 +106,7 @@ export default function ProfilePage() {
                 >
                   <MaterialCommunityIcons name="arrow-up-circle-outline" size={20} color="white" />
                   <Text className="text-white font-black font-inter-black text-sm ml-2 uppercase tracking-widest">
-                    Upgrade to Pro
+                    {t('profile.upgrade')}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -112,7 +114,7 @@ export default function ProfilePage() {
                 <View className="bg-emerald-50 py-3 rounded-2xl flex-row items-center justify-center border border-emerald-100">
                   <MaterialCommunityIcons name="check-decagram" size={18} color="#10B981" />
                   <Text className="text-emerald-600 font-black font-inter-black text-xs ml-2 uppercase tracking-widest">
-                    Active Subscription
+                    {t('profile.activeSub')}
                   </Text>
                 </View>
               )}
@@ -129,7 +131,7 @@ export default function ProfilePage() {
         {/* Settings List */}
         <View className="px-6 mb-10">
           <Text className="text-slate-400 font-black font-inter-black text-xs uppercase tracking-[3px] mb-6 ml-2">
-            Account Settings
+            {t('profile.accountSettings')}
           </Text>
 
           <View className="bg-white rounded-[40px] border border-slate-100 overflow-hidden">
@@ -163,14 +165,14 @@ export default function ProfilePage() {
           >
             <MaterialCommunityIcons name="logout-variant" size={24} color="#ef4444" />
             <Text className="text-red-500 font-black font-inter-black text-lg ml-3 uppercase tracking-wider">
-              Log Out
+              {t('profile.menu.logout')}
             </Text>
           </TouchableOpacity>
         </View>
 
         <View className="items-center">
           <Text className="text-slate-300 font-inter-medium text-xs">
-            Wardrobe v1.2.0 (Build 1024)
+            {t('profile.version')}
           </Text>
         </View>
       </ScrollView>

@@ -6,11 +6,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 import { useState, useEffect } from 'react';
 import Toast from 'react-native-toast-message';
+import { useTranslation } from 'react-i18next';
 
 export default function AccountInfoPage() {
     const { profile, user, updateProfile } = useAuth();
     const router = useRouter();
     const { top } = useSafeAreaInsets();
+    const { t } = useTranslation();
 
     const [name, setName] = useState(profile?.name || '');
     const [surname, setSurname] = useState(profile?.surname || '');
@@ -27,7 +29,7 @@ export default function AccountInfoPage() {
 
     const handleSave = async () => {
         if (!name.trim() || !surname.trim()) {
-            Alert.alert('Missing Info', 'Please fill in both first and last name.');
+            Alert.alert(t('account.missingInfo'), t('account.fillBoth'));
             return;
         }
 
@@ -43,12 +45,12 @@ export default function AccountInfoPage() {
         if (success) {
             Toast.show({
                 type: 'success',
-                text1: 'Profile Updated',
-                text2: 'Your changes have been saved successfully.',
+                text1: t('account.profileUpdated'),
+                text2: t('account.profileUpdatedDesc'),
                 position: 'top'
             });
         } else {
-            Alert.alert('Error', 'Could not update profile. Please try again.');
+            Alert.alert(t('common.error'), t('account.updateError'));
         }
     };
 
@@ -65,7 +67,7 @@ export default function AccountInfoPage() {
                 >
                     <Ionicons name="chevron-back" size={24} color="#1e293b" />
                 </TouchableOpacity>
-                <Text className="text-xl font-black font-inter-black text-slate-900">Account Info</Text>
+                <Text className="text-xl font-black font-inter-black text-slate-900">{t('account.title')}</Text>
                 <View className="w-12" />
             </View>
 
@@ -93,7 +95,7 @@ export default function AccountInfoPage() {
                         </View>
                         <View className="flex-1">
                             <Text className="text-xs font-black font-inter-black text-slate-400 uppercase tracking-widest mb-1">
-                                First Name
+                                {t('account.firstName')}
                             </Text>
                             <TextInput
                                 className="text-base font-inter-bold font-bold text-slate-900 p-0"
@@ -112,7 +114,7 @@ export default function AccountInfoPage() {
                         </View>
                         <View className="flex-1">
                             <Text className="text-xs font-black font-inter-black text-slate-400 uppercase tracking-widest mb-1">
-                                Last Name
+                                {t('account.lastName')}
                             </Text>
                             <TextInput
                                 className="text-base font-inter-bold font-bold text-slate-900 p-0"
@@ -131,7 +133,7 @@ export default function AccountInfoPage() {
                         </View>
                         <View className="flex-1">
                             <Text className="text-xs font-black font-inter-black text-slate-400 uppercase tracking-widest mb-1">
-                                Email Address (Strict)
+                                {t('account.email')}
                             </Text>
                             <Text className="text-base font-inter-bold font-bold text-slate-900">
                                 {user?.email}
@@ -146,7 +148,7 @@ export default function AccountInfoPage() {
                                 <MaterialCommunityIcons name="gender-male-female" size={24} color="#64748b" />
                             </View>
                             <Text className="text-xs font-black font-inter-black text-slate-400 uppercase tracking-widest">
-                                Gender
+                                {t('account.gender')}
                             </Text>
                         </View>
 
@@ -156,14 +158,14 @@ export default function AccountInfoPage() {
                                 className={`flex-1 flex-row items-center justify-center py-4 rounded-2xl border ${gender === 'male' ? 'bg-[#3A1AEB] border-[#3A1AEB]' : 'bg-slate-50 border-slate-100'}`}
                             >
                                 <MaterialCommunityIcons name="human-male" size={20} color={gender === 'male' ? 'white' : '#64748b'} />
-                                <Text className={`ml-2 font-inter-bold font-bold ${gender === 'male' ? 'text-white' : 'text-slate-600'}`}>Male</Text>
+                                <Text className={`ml-2 font-inter-bold font-bold ${gender === 'male' ? 'text-white' : 'text-slate-600'}`}>{t('account.male')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 onPress={() => setGender('female')}
                                 className={`flex-1 flex-row items-center justify-center py-4 rounded-2xl border ${gender === 'female' ? 'bg-[#3A1AEB] border-[#3A1AEB]' : 'bg-slate-50 border-slate-100'}`}
                             >
                                 <MaterialCommunityIcons name="human-female" size={20} color={gender === 'female' ? 'white' : '#64748b'} />
-                                <Text className={`ml-2 font-inter-bold font-bold ${gender === 'female' ? 'text-white' : 'text-slate-600'}`}>Female</Text>
+                                <Text className={`ml-2 font-inter-bold font-bold ${gender === 'female' ? 'text-white' : 'text-slate-600'}`}>{t('account.female')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -178,7 +180,7 @@ export default function AccountInfoPage() {
                         <ActivityIndicator color="white" />
                     ) : (
                         <Text className="text-white font-black font-inter-black text-base uppercase tracking-widest">
-                            Save Changes
+                            {t('account.save')}
                         </Text>
                     )}
                 </TouchableOpacity>

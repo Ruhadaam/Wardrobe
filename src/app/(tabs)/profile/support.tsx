@@ -4,28 +4,30 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInRight } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 export default function SupportPage() {
     const router = useRouter();
     const { top } = useSafeAreaInsets();
+    const { t } = useTranslation();
     const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
     const faqs = [
         {
-            question: "How do I add a new item?",
-            answer: "Go to the Wardrobe tab and tap the 'New' button at the top right. You can take a photo with your camera or select one from your gallery. Our AI will automatically analyze it and remove the background."
+            question: t('support.faqs.q1'),
+            answer: t('support.faqs.a1')
         },
         {
-            question: "What is the Free Plan limit?",
-            answer: "The Free Plan allows you to store up to 20 items in your wardrobe and generate 2 outfits per day. Upgrade to Pro for unlimited storage and creation!"
+            question: t('support.faqs.q2'),
+            answer: t('support.faqs.a2')
         },
         {
-            question: "How does the AI Stylist work?",
-            answer: "Our stylist analyzes the color, season, and style of your clothes to create harmonized outfits based on your preferences. The more clothes you add, the better the suggestions become."
+            question: t('support.faqs.q3'),
+            answer: t('support.faqs.a3')
         },
         {
-            question: "Can I use the app offline?",
-            answer: "Wardrobe requires an internet connection for AI analysis and cloud syncing, but you can view your existing collection offline."
+            question: t('support.faqs.q4'),
+            answer: t('support.faqs.a4')
         }
     ];
 
@@ -47,14 +49,14 @@ export default function SupportPage() {
                 >
                     <Ionicons name="chevron-back" size={24} color="#1e293b" />
                 </TouchableOpacity>
-                <Text className="text-xl font-black font-inter-black text-slate-900">Help & Support</Text>
+                <Text className="text-xl font-black font-inter-black text-slate-900">{t('support.title')}</Text>
                 <View className="w-12" />
             </View>
 
             <ScrollView className="flex-1 pt-6" showsVerticalScrollIndicator={false}>
                 {/* FAQ Section */}
                 <View className="px-6 mb-10">
-                    <Text className="text-slate-400 font-black font-inter-black text-xs uppercase tracking-[3px] mb-6 ml-2">Common Questions</Text>
+                    <Text className="text-slate-400 font-black font-inter-black text-xs uppercase tracking-[3px] mb-6 ml-2">{t('support.commonQuestions')}</Text>
                     <View className="gap-4">
                         {faqs.map((faq, index) => (
                             <TouchableOpacity
@@ -83,22 +85,22 @@ export default function SupportPage() {
 
                 {/* Contact Section */}
                 <View className="px-6 mb-10">
-                    <Text className="text-slate-400 font-black font-inter-black text-xs uppercase tracking-[3px] mb-6 ml-2">Still need help?</Text>
+                    <Text className="text-slate-400 font-black font-inter-black text-xs uppercase tracking-[3px] mb-6 ml-2">{t('support.stillNeedHelp')}</Text>
                     <View className="flex-row">
                         <TouchableOpacity className="flex-1 bg-slate-900 rounded-[32px] p-6 items-center justify-center shadow-lg">
                             <View className="w-12 h-12 bg-white/10 rounded-full items-center justify-center mb-4">
                                 <MaterialCommunityIcons name="email-fast-outline" size={24} color="white" />
                             </View>
-                            <Text className="text-white font-inter-bold font-bold">Email Us</Text>
+                            <Text className="text-white font-inter-bold font-bold">{t('support.emailUs')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
 
                 <View className="px-6 mb-10 items-center">
-                    <Text className="text-slate-300 font-inter-medium text-xs mb-4">You are using Wardrobe v1.2.0</Text>
+                    <Text className="text-slate-300 font-inter-medium text-xs mb-4">{t('profile.version')}</Text>
                     <View className="flex-row gap-6">
-                        <Text className="text-slate-400 font-inter-bold font-bold text-[10px] uppercase tracking-widest">Privacy Policy</Text>
-                        <Text className="text-slate-400 font-inter-bold font-bold text-[10px] uppercase tracking-widest">Terms of Service</Text>
+                        <Text className="text-slate-400 font-inter-bold font-bold text-[10px] uppercase tracking-widest">{t('support.privacy')}</Text>
+                        <Text className="text-slate-400 font-inter-bold font-bold text-[10px] uppercase tracking-widest">{t('support.terms')}</Text>
                     </View>
                 </View>
             </ScrollView>

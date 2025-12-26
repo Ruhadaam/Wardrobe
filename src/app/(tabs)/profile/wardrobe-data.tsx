@@ -6,12 +6,14 @@ import { MaterialCommunityIcons, Ionicons, MaterialIcons } from '@expo/vector-ic
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatLabel } from '../../../utils/textUtils';
 import Animated, { FadeInRight } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 export default function WardrobeDataPage() {
     const { items, loading } = useWardrobe();
     const router = useRouter();
     const { top, bottom } = useSafeAreaInsets();
     const { width } = Dimensions.get('window');
+    const { t } = useTranslation();
 
     const stats = useMemo(() => {
         const categories = items.reduce((acc, item) => {
@@ -53,7 +55,7 @@ export default function WardrobeDataPage() {
                 >
                     <Ionicons name="chevron-back" size={24} color="#1e293b" />
                 </TouchableOpacity>
-                <Text className="text-xl font-black font-inter-black text-slate-900">Wardrobe Data</Text>
+                <Text className="text-xl font-black font-inter-black text-slate-900">{t('wardrobeData.title')}</Text>
                 <View className="w-12" />
             </View>
 
@@ -65,7 +67,7 @@ export default function WardrobeDataPage() {
                 {/* Total Scale Card */}
                 <View className="bg-[#3A1AEB] rounded-[40px] p-8 mb-8 flex-row items-center justify-between shadow-xl shadow-[#3A1AEB]/20">
                     <View>
-                        <Text className="text-white/60 font-black font-inter-black text-xs uppercase tracking-[3px] mb-2">Total Items</Text>
+                        <Text className="text-white/60 font-black font-inter-black text-xs uppercase tracking-[3px] mb-2">{t('wardrobeData.totalItems')}</Text>
                         <Text className="text-white text-5xl font-black font-inter-black">{stats.total}</Text>
                     </View>
                     <View className="w-20 h-20 bg-white/10 rounded-full items-center justify-center">
@@ -76,7 +78,7 @@ export default function WardrobeDataPage() {
                 {/* Category Breakdown */}
                 <View className="mb-8">
                     <View className="flex-row items-center justify-between mb-6 px-2">
-                        <Text className="text-slate-900 font-black font-inter-black text-lg">Category Distribution</Text>
+                        <Text className="text-slate-900 font-black font-inter-black text-lg">{t('wardrobeData.distribution')}</Text>
                         <MaterialIcons name="pie-chart" size={20} color="#3A1AEB" />
                     </View>
 
@@ -102,7 +104,7 @@ export default function WardrobeDataPage() {
                 <View className="flex-row gap-4 mb-10">
                     <View className="flex-1">
                         <View className="bg-fuchsia-50 rounded-[32px] p-6 border border-fuchsia-100 min-h-[160]">
-                            <Text className="text-fuchsia-600 font-black font-inter-black text-[10px] uppercase tracking-widest mb-4">Top Styles</Text>
+                            <Text className="text-fuchsia-600 font-black font-inter-black text-[10px] uppercase tracking-widest mb-4">{t('wardrobeData.topStyles')}</Text>
                             {stats.topStyles.slice(0, 3).map(([style, count]) => (
                                 <Text key={style} className="text-slate-800 font-inter-bold font-bold text-sm mb-1 capitalize" numberOfLines={1}>
                                     • {formatLabel(style)}
@@ -112,7 +114,7 @@ export default function WardrobeDataPage() {
                     </View>
                     <View className="flex-1">
                         <View className="bg-amber-50 rounded-[32px] p-6 border border-amber-100 min-h-[160]">
-                            <Text className="text-amber-600 font-black font-inter-black text-[10px] uppercase tracking-widest mb-4">Top Colors</Text>
+                            <Text className="text-amber-600 font-black font-inter-black text-[10px] uppercase tracking-widest mb-4">{t('wardrobeData.topColors')}</Text>
                             {stats.topColors.slice(0, 3).map(([color, count]) => (
                                 <Text key={color} className="text-slate-800 font-inter-bold font-bold text-sm mb-1 capitalize" numberOfLines={1}>
                                     • {formatLabel(color)}
@@ -126,7 +128,7 @@ export default function WardrobeDataPage() {
                     onPress={() => router.push('/(tabs)/wardrobe')}
                     className="bg-slate-900 py-5 rounded-[24px] items-center justify-center mb-4"
                 >
-                    <Text className="text-white font-black font-inter-black text-sm uppercase tracking-[3px]">Manage Wardrobe</Text>
+                    <Text className="text-white font-black font-inter-black text-sm uppercase tracking-[3px]">{t('wardrobeData.manage')}</Text>
                 </TouchableOpacity>
             </ScrollView>
         </Animated.View>

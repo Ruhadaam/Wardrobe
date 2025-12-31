@@ -25,6 +25,7 @@ import { useWardrobe } from "../../providers/WardrobeProvider";
 import { RevenueCatService } from "../../lib/revenuecat";
 import { useRouter } from "expo-router";
 import { useTranslation } from 'react-i18next';
+import { adMobService } from "../../lib/admob";
 
 
 // op ögelerini ana kategoriye göre gruplayan yardımcı fonksiyon
@@ -53,7 +54,9 @@ export default function WardrobePage() {
     const { items, loading: isLoading, refreshItems } = useWardrobe();
     const [groupedItems, setGroupedItems] = useState<Record<string, WardrobeItem[]>>({});
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [showSourceModal, setShowSourceModal] = useState(false);
+    const [addedItemsCount, setAddedItemsCount] = useState(0);
     const router = useRouter();
 
     const getLabel = (key: string | null | undefined) => {
@@ -87,6 +90,7 @@ export default function WardrobePage() {
                     style: "destructive",
                     onPress: async () => {
                         try {
+                            setIsDeleting(true);
                             // Perform delete
                             await wardrobeService.deleteItem(itemId);
 
@@ -108,6 +112,8 @@ export default function WardrobePage() {
                                 text1: t('wardrobe.deleteFailed'),
                                 position: 'top'
                             });
+                        } finally {
+                            setIsDeleting(false);
                         }
                     }
                 }
@@ -121,7 +127,7 @@ export default function WardrobePage() {
             return;
         }
 
-        if (isPremium === false && items.length >= 20) {
+        if (isPremium === false && items.length >= 10) {
             Alert.alert(
                 t('wardrobe.limitReachedTitle'),
                 t('wardrobe.limitReachedDesc'),
@@ -184,18 +190,41 @@ export default function WardrobePage() {
             visibilityTime: 4000,
         });
 
-        try {
+        const shouldShowAd = !isPremium && ((addedItemsCount + 1) % 2 === 0);
+
+        // 1. Start Analysis Process (Promise)
+        const analysisProcess = (async () => {
             // 1. Analyze and Background Removal
             const visionItem = await visionService.analyzeImage(imageUri);
-
             // Extract the processed image URL return from analysis
             const publicUrl = visionItem.image_url;
-
             // 2. Save to DB
             const savedItem = await wardrobeService.addItem(user.id, visionItem, publicUrl);
-
             // 4. Update UI
             await refreshItems();
+
+            return { visionItem, savedItem, publicUrl };
+        })();
+
+        // 2. Start Ad Process (Promise) - only if triggered
+        const adProcess = (async () => {
+            if (shouldShowAd) {
+                // Load and Show Ad
+                await adMobService.loadInterstitial();
+                await adMobService.showInterstitial();
+            }
+        })();
+
+        try {
+            // Update count immediately for next time
+            setAddedItemsCount(prev => prev + 1);
+
+            // Wait for BOTH to complete
+            // If ad is showing, analysis happens in background.
+            // If analysis finishes first, we still wait for ad to close.
+            const [analysisResult] = await Promise.all([analysisProcess, adProcess]);
+
+            const { visionItem, savedItem, publicUrl } = analysisResult;
 
             const newItem: WardrobeItem = {
                 ...visionItem,
@@ -292,14 +321,14 @@ export default function WardrobePage() {
                                 <Text className="text-base font-bold font-inter-bold text-slate-800">{t('wardrobe.freePlanLimit')}</Text>
                             </View>
                             <View className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                                <Text className="text-sm font-bold font-inter-bold text-slate-600">{items.length}/20</Text>
+                                <Text className="text-sm font-bold font-inter-bold text-slate-600">{items.length}/10</Text>
                             </View>
                         </View>
 
                         <View className="h-2.5 bg-slate-100 rounded-full overflow-hidden mb-4">
                             <View
                                 className="h-full bg-[#3A1AEB] rounded-full"
-                                style={{ width: `${Math.min((items.length / 20) * 100, 100)}%` }}
+                                style={{ width: `${Math.min((items.length / 10) * 100, 100)}%` }}
                             />
                         </View>
 
@@ -500,7 +529,7 @@ export default function WardrobePage() {
             </ScrollView>
 
             {/* Analiz Loading Overlay */}
-            {isAnalyzing && (
+            {(isAnalyzing || isDeleting) && (
                 <View
                     className="absolute inset-0 justify-center items-center z-50"
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.85)' }}
@@ -521,9 +550,11 @@ export default function WardrobePage() {
                             loop
                             style={{ width: 140, height: 140 }}
                         />
-                        <Text className="text-slate-900 font-black font-inter-black text-xl mt-2">{t('wardrobe.analyzingTitle')}</Text>
+                        <Text className="text-slate-900 font-black font-inter-black text-xl mt-2">
+                            {isDeleting ? t('wardrobe.deletingTitle') : t('wardrobe.analyzingTitle')}
+                        </Text>
                         <Text className="text-slate-500 text-sm mt-2 text-center leading-relaxed px-2">
-                            {t('wardrobe.analyzingDesc')}
+                            {isDeleting ? t('wardrobe.deletingDesc') : t('wardrobe.analyzingDesc')}
                         </Text>
                     </View>
                 </View>

@@ -7,6 +7,7 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Platform, View } from "react-native";
 import Toast from "react-native-toast-message";
+import mobileAds from 'react-native-google-mobile-ads';
 
 import {
   useFonts,
@@ -48,6 +49,13 @@ function InitialLayout() {
         await RevenueCatService.init();
       } catch (e) {
         console.error("Failed to initialize RevenueCat in layout:", e);
+      }
+
+      // Initialize AdMob
+      try {
+        await mobileAds().initialize();
+      } catch (e) {
+        console.error("Failed to initialize AdMob:", e);
       }
 
       if (Platform.OS !== 'android' || fontsLoaded || fontError) {

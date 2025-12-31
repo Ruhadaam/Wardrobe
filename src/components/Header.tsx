@@ -61,7 +61,7 @@ export default function Header(props: any) {
                     onPress={toggleLanguageModal}
                     className="flex-row items-center bg-slate-50 px-2 py-1.5 rounded-xl border border-slate-200"
                 >
-                    <Text className="text-base mr-1">{currentLanguage.flag} {currentLanguage.label}</Text>
+                    <Text className="text-base mr-1">{currentLanguage.flag}</Text>
                     <MaterialCommunityIcons name="chevron-down" size={16} color="#64748b" />
                 </TouchableOpacity>
 

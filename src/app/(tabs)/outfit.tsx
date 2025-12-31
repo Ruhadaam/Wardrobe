@@ -17,6 +17,7 @@ import OutfitViewModal from '../../components/OutfitViewModal';
 const { width } = Dimensions.get('window');
 import { useRouter, useFocusEffect } from 'expo-router';
 import { RevenueCatService } from '../../lib/revenuecat';
+import { adMobService } from '../../lib/admob';
 import { useTranslation } from 'react-i18next';
 
 // Define available filter categories
@@ -146,8 +147,8 @@ const StyleFilter = memo(({ selectedTags, onToggle, shouldAnimate = true }: Filt
               onPress={() => onToggle(tag)}
               className="rounded-3xl overflow-hidden"
               style={{
-                width: 140,
-                height: 90,
+                width: 160,
+                height: 120,
                 borderWidth: 3,
                 borderColor: isSelected ? '#3A1AEB' : 'transparent',
               }}
@@ -251,6 +252,8 @@ export default function OutfitPage() {
   const router = useRouter();
 
   const [todayOutfitCount, setTodayOutfitCount] = useState<number>(0);
+  const [watchedAdsCount, setWatchedAdsCount] = useState(0);
+  const [isLoadingAd, setIsLoadingAd] = useState(false);
 
   // Track if this is the first render to control animations
   const isFirstRender = useRef(true);
@@ -319,6 +322,48 @@ export default function OutfitPage() {
     };
     fetchUsage();
   }, [user, isPremium]);
+
+  // Preload rewarded ad if reaching limit
+  useEffect(() => {
+    if (!isPremium && todayOutfitCount >= 2 && watchedAdsCount < 2) {
+      adMobService.loadRewarded();
+    }
+  }, [isPremium, todayOutfitCount, watchedAdsCount]);
+
+  const handleWatchAd = async () => {
+    setIsLoadingAd(true);
+    try {
+      if (!adMobService.isRewardedAdLoaded()) {
+        await adMobService.loadRewarded();
+      }
+
+      const rewardEarned = await adMobService.showRewarded();
+      if (rewardEarned) {
+        const newCount = watchedAdsCount + 1;
+        setWatchedAdsCount(newCount);
+
+        if (newCount >= 2) {
+          // Grant bonus - reset today count effectively (or allow 1 more)
+          // Simplest way: just decrement local count or set a "bonus" flag.
+          // Let's decrement local count by 1 to allow 1 more generation.
+          // BUT: BE is truth. We rely on BE count. 
+          // So we must allow handleGenerate to proceed locally.
+          // We will update logic in handleGenerate to check (todayOutfitCount >= 2 && watchedAdsCount < 2)
+          Alert.alert(t('outfit.bonusUnlocked'), t('outfit.bonusUnlockedDesc'));
+        } else {
+          Alert.alert(t('outfit.adWatched'), t('outfit.watchOneMore'));
+          // Load next ad
+          adMobService.loadRewarded();
+        }
+      }
+    } catch (e) {
+      console.error("Ad error", e);
+      Alert.alert(t('common.error'), t('outfit.adLoadError'));
+    } finally {
+      setIsLoadingAd(false);
+    }
+  };
+
 
   // Check wardrobe counts
   const topsCount = items.filter(i => {
@@ -410,12 +455,22 @@ export default function OutfitPage() {
       return;
     }
 
-    if (isPremium === false && todayOutfitCount >= 2) {
+    // Limit Logic: 2 per day OR (Watch 2 ads -> +1 generation)
+    // If user watched 2 ads, we allow generation even if count >= 2.
+    // BUT we need to reset watchedAdsCount after consumption? 
+    // Let's assume user watched 2 ads -> they get 1 free generation.
+    // Logic: if (!isPremium && count >= 2 && watchedAdsCount < 2) -> BLOCK.
+
+    if (isPremium === false && todayOutfitCount >= 2 && watchedAdsCount < 2) {
       Alert.alert(
         t('outfit.dailyLimitTitle'),
         t('outfit.dailyLimitDesc'),
         [
           { text: t('wardrobe.later'), style: "cancel" },
+          {
+            text: t('outfit.watchAds'),
+            onPress: handleWatchAd
+          },
           { text: t('wardrobe.upgradeToPro'), onPress: () => router.push('/paywall') }
         ]
       );
@@ -464,6 +519,10 @@ export default function OutfitPage() {
               if (!isPremium) {
                 const count = await wardrobeService.getTodayOutfitCount(user.id);
                 setTodayOutfitCount(count);
+                // If they used a bonus (watched 2 ads), reset ad count?
+                if (watchedAdsCount >= 2) {
+                  setWatchedAdsCount(0); // Consumption
+                }
               }
             }
           } catch (err) {
@@ -506,6 +565,59 @@ export default function OutfitPage() {
           {t('outfit.howToLook')}
         </Text>
       </Animated.View>
+
+      {/* Free Plan Progress Bar */}
+      {!isPremium && (
+        <Animated.View entering={FadeInDown.duration(500).delay(200)} className="px-6 mb-4">
+          <View
+            className="bg-white rounded-2xl p-4 border border-slate-100"
+            style={{
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.05,
+              shadowRadius: 10,
+              elevation: 3,
+            }}
+          >
+            <View className="flex-row justify-between items-center mb-2">
+              <View className="flex-row items-center gap-2">
+                <Ionicons name="flash" size={16} color="#3A1AEB" />
+                <Text className="text-sm font-bold font-inter-bold text-slate-700">
+                  {t('outfit.dailyGenerations')}
+                </Text>
+              </View>
+              <Text className="text-sm font-bold font-inter-bold text-slate-500">
+                {Math.min(todayOutfitCount, 2)}/2
+              </Text>
+            </View>
+
+            <View className="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
+              <View
+                className="h-full bg-[#3A1AEB] rounded-full"
+                style={{ width: `${Math.min((todayOutfitCount / 2) * 100, 100)}%` }}
+              />
+            </View>
+
+            {todayOutfitCount >= 2 && watchedAdsCount < 2 && (
+              <TouchableOpacity
+                onPress={handleWatchAd}
+                className="flex-row items-center justify-center bg-slate-900 py-2.5 rounded-xl mt-1"
+              >
+                {isLoadingAd ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <Ionicons name="play-circle" size={18} color="white" style={{ marginRight: 6 }} />
+                    <Text className="text-white text-xs font-bold font-inter-bold">
+                      {t('outfit.watchAdsToUnlock')} ({watchedAdsCount}/2)
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        </Animated.View>
+      )}
 
       <ScrollView
         className="flex-1"

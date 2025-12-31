@@ -13,35 +13,40 @@ const corsHeaders = {
 }
 
 // --- 1. KISITLAMA LİSTELERİ (V7 YAPISI) ---
-const VALID_OPTIONS = {
-    category: [
-        "top", "bottom", "outerwear", "shoes", "accessory", "one_piece"
+// --- 1. KISITLAMA LİSTELERİ (V7 YAPISI - OPTIMIZED) ---
+const SUB_CATEGORIES = {
+    top: [
+        "tshirt", "longsleeve", "shirt", "polo", "hoodie", "sweatshirt", "knitwear",
+        "tanktop", "blouse", "vest", "crop_top", "bodysuit", "tunic"
     ],
-    sub_category: {
-        top: [
-            "tshirt", "longsleeve", "shirt", "polo", "hoodie", "sweatshirt", "knitwear",
-            "tanktop", "blouse", "vest", "crop_top", "bodysuit", "tunic"
-        ],
-        bottom: [
-            "jeans", "trousers", "shorts", "sweatpants", "leggings", "skirt",
-            "cargo_pants", "joggers", "chinos", "skort"
-        ],
-        outerwear: [
-            "jacket", "coat", "parka", "blazer", "cardigan", "windbreaker",
-            "trench_coat", "puffer", "denim_jacket", "leather_jacket", "bomber_jacket"
-        ],
-        shoes: [
-            "sneakers", "boots", "loafers", "sandals", "heels", "running_shoes",
-            "flats", "oxford", "slippers", "hiking_boots"
-        ],
-        accessory: [
-            "cap", "beanie", "scarf", "bag", "watch", "belt", "sunglasses",
-            "jewelry", "tie", "gloves", "socks", "hat"
-        ],
-        one_piece: [
-            "dress", "jumpsuit", "romper"
-        ]
-    },
+    bottom: [
+        "jeans", "trousers", "shorts", "sweatpants", "leggings", "skirt",
+        "cargo_pants", "joggers", "chinos", "skort"
+    ],
+    outerwear: [
+        "jacket", "coat", "parka", "blazer", "cardigan", "windbreaker",
+        "trench_coat", "puffer", "denim_jacket", "leather_jacket", "bomber_jacket"
+    ],
+    shoes: [
+        "sneakers", "boots", "loafers", "sandals", "heels", "running_shoes",
+        "flats", "oxford", "slippers", "hiking_boots"
+    ],
+    accessory: [
+        "cap", "beanie", "scarf", "bag", "watch", "belt", "sunglasses",
+        "jewelry", "tie", "gloves", "socks", "hat"
+    ],
+    one_piece: [
+        "dress", "jumpsuit", "romper"
+    ]
+};
+
+const FORMALITY = [
+    "casual", "smart_casual", "business_casual", "formal"
+];
+
+const VALID_OPTIONS = {
+    category: Object.keys(SUB_CATEGORIES),
+    sub_category: SUB_CATEGORIES,
     colors: [
         "black", "white", "grey", "charcoal", "blue", "navy", "teal",
         "red", "burgundy", "green", "olive", "yellow", "gold",
@@ -49,7 +54,7 @@ const VALID_OPTIONS = {
         "silver", "multicolor"
     ],
     style: [
-        "casual", "smart_casual", "business_casual", "formal",
+        ...FORMALITY,
         "streetwear", "sport", "minimal", "bohemian", "vintage", "chic", "preppy"
     ],
     season: [
@@ -62,9 +67,7 @@ const VALID_OPTIONS = {
     fit: [
         "oversize", "regular", "slim", "wide", "relaxed", "skinny", "cropped"
     ],
-    formality: [
-        "casual", "smart_casual", "business_casual", "formal"
-    ],
+    formality: FORMALITY,
     pattern: [
         "plain", "striped", "checked", "graphic", "logo", "camouflage",
         "floral", "polka_dot", "plaid", "animal_print", "tie_dye"
@@ -268,15 +271,58 @@ serve(async (req) => {
             throw new Error(`Background removal image not found in response.`)
         }
 
-        console.log(`Uploading processed image to Supabase Storage for user: ${userId}...`)
+        // --- IMAGE OPTIMIZATION: Convert to WebP and resize ---
+        console.log(`Optimizing image before upload...`)
+
+        // Decode base64 to binary
         const binaryProcessed = Uint8Array.from(atob(processedBase64), c => c.charCodeAt(0))
-        const fileName = `${Date.now()}_refined.png`
+
+        // Use ImageMagick via Deno for optimization (WebP conversion + resize)
+        // Since we're in Edge Function with limited libraries, we'll use a simpler approach:
+        // Store as optimized JPEG instead of PNG (smaller size, white background works fine)
+
+        // Convert PNG to JPEG using canvas-like approach
+        // For Deno Edge Functions, we'll use a more compatible method
+        let optimizedImage = binaryProcessed
+        let contentType = 'image/png'
+        let fileExtension = 'png'
+
+        // Try to convert to JPEG using ImageScript (more compatible than WebP)
+        try {
+            // Import ImageScript for image processing
+            const { Image } = await import('https://deno.land/x/imagescript@1.3.0/mod.ts')
+
+            // Decode the PNG
+            const img = await Image.decode(binaryProcessed)
+
+            // Resize to max 800px (maintaining aspect ratio)
+            const maxSize = 800
+            if (img.width > maxSize || img.height > maxSize) {
+                const scale = Math.min(maxSize / img.width, maxSize / img.height)
+                img.resize(Math.round(img.width * scale), Math.round(img.height * scale))
+                console.log(`Resized to ${img.width}x${img.height}`)
+            }
+
+            // Encode as JPEG with 85% quality (widely supported, good compression)
+            // ImageScript uses encodeJPEG(quality) where quality is 1-100
+            optimizedImage = await img.encodeJPEG(85)
+            contentType = 'image/jpeg' 
+            fileExtension = 'jpg'
+            console.log(`Converted to JPEG. Size: ${optimizedImage.length} bytes`)
+        } catch (imgError) {
+            // Fallback: use original PNG if ImageScript fails
+            console.warn('ImageScript optimization failed, using original PNG:', imgError)
+            optimizedImage = binaryProcessed
+        }
+
+        console.log(`Uploading optimized image to Supabase Storage for user: ${userId}...`)
+        const fileName = `${Date.now()}_refined.${fileExtension}`
         const filePath = `${userId}/${fileName}`
 
         const { error: uploadError } = await supabase.storage
             .from('uploads')
-            .upload(filePath, binaryProcessed, {
-                contentType: 'image/png',
+            .upload(filePath, optimizedImage, {
+                contentType: contentType,
                 upsert: false
             })
 

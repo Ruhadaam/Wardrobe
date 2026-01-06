@@ -180,26 +180,45 @@ export default function PaywallScreen() {
 
     const loadOfferings = async () => {
         try {
+            console.log('[Paywall] Loading offerings...');
             const offerings = await RevenueCatService.getOfferings();
-            if (offerings && offerings.availablePackages) {
+            console.log('[Paywall] Offerings received:', offerings ? {
+                identifier: offerings.identifier,
+                packageCount: offerings.availablePackages?.length || 0
+            } : 'null');
+            
+            if (offerings && offerings.availablePackages && offerings.availablePackages.length > 0) {
                 const sortedPackages = [...offerings.availablePackages].sort((a, b) => {
                     if (a.packageType === 'ANNUAL' && b.packageType !== 'ANNUAL') return -1;
                     if (a.packageType !== 'ANNUAL' && b.packageType === 'ANNUAL') return 1;
                     return 0;
                 });
+                console.log('[Paywall] Sorted packages:', sortedPackages.map(p => ({
+                    identifier: p.identifier,
+                    type: p.packageType,
+                    price: p.product?.priceString
+                })));
                 setPackages(sortedPackages);
-
-                // Varsayılan seçim kaldırıldı
-                // const annualPackage = sortedPackages.find(p => p.packageType === 'ANNUAL');
-                // if (annualPackage) {
-                //     setSelectedPackage(annualPackage);
-                // } else if (sortedPackages.length > 0) {
-                //     setSelectedPackage(sortedPackages[0]);
-                // }
+            } else {
+                console.warn('[Paywall] No packages available in offerings');
+                // Retry once after a short delay
+                setTimeout(async () => {
+                    console.log('[Paywall] Retrying to load offerings...');
+                    const retryOfferings = await RevenueCatService.getOfferings();
+                    if (retryOfferings && retryOfferings.availablePackages && retryOfferings.availablePackages.length > 0) {
+                        const sortedPackages = [...retryOfferings.availablePackages].sort((a, b) => {
+                            if (a.packageType === 'ANNUAL' && b.packageType !== 'ANNUAL') return -1;
+                            if (a.packageType !== 'ANNUAL' && b.packageType === 'ANNUAL') return 1;
+                            return 0;
+                        });
+                        setPackages(sortedPackages);
+                    }
+                }, 2000);
             }
-        } catch (e) {
-            console.error('Error loading offerings:', e);
-            Alert.alert(t('common.error'), t('paywall.loadError'));
+        } catch (e: any) {
+            console.error('[Paywall] Error loading offerings:', e);
+            const errorMessage = e?.message || t('paywall.loadError');
+            Alert.alert(t('common.error'), errorMessage);
         } finally {
             setLoading(false);
         }

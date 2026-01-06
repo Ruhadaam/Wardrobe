@@ -27,13 +27,16 @@ export default function Register() {
     const [name, setName] = useState('');
     const [surname, setSurname] = useState('');
     const [gender, setGender] = useState<'male' | 'female' | null>(null);
-    const [birthday, setBirthday] = useState(new Date());
+    const [birthday, setBirthday] = useState<Date | null>(null);
     const [showDatePicker, setShowDatePicker] = useState(false);
 
     const onChangeDate = (event: any, selectedDate?: Date) => {
-        const currentDate = selectedDate || birthday;
-        setShowDatePicker(Platform.OS === 'ios');
-        setBirthday(currentDate);
+        if (Platform.OS === 'android') {
+            setShowDatePicker(false);
+        }
+        if (selectedDate) {
+            setBirthday(selectedDate);
+        }
     };
 
     const validateStep = (currentStep: number) => {
@@ -41,7 +44,7 @@ export default function Register() {
             case 1: // Name
                 return name.trim().length > 0 && surname.trim().length > 0;
             case 2: // Identity
-                return gender !== null;
+                return true; // Gender ve birthday opsiyonel
             case 3: // Credentials
                 return email.includes('@') && password.length >= 6;
             default:
@@ -77,8 +80,8 @@ export default function Register() {
             const { data, error } = await auth.signUp(email, password, {
                 name,
                 surname,
-                gender,
-                birthday
+                gender: gender || null,
+                birthday: birthday || null
             });
 
             if (error) {
@@ -191,15 +194,15 @@ export default function Register() {
                 Almost there
             </Text>
             <Text className="text-slate-500 font-inter-medium mb-8">
-                A few more details for your profile.
+                Optional details for your profile. You can skip these.
             </Text>
 
             <View className="space-y-6">
                 <View>
-                    <Text className="text-slate-700 mb-6 font-bold font-inter-bold ml-1 text-sm">{t('auth.gender')}</Text>
+                    <Text className="text-slate-700 mb-2 font-bold font-inter-bold ml-1 text-sm">{t('auth.gender')} <Text className="text-slate-400 font-normal">(Optional)</Text></Text>
                     <View className="flex-row gap-4">
                         <TouchableOpacity
-                            onPress={() => setGender('male')}
+                            onPress={() => setGender(gender === 'male' ? null : 'male')}
                             className={`flex-1 p-6 rounded-3xl border-2 items-center justify-center ${gender === 'male' ? 'border-[#3A1AEB] bg-[#3A1AEB]/5' : 'border-slate-100 bg-slate-50'}`}
                         >
                             <View className={`w-12 h-12 rounded-full items-center justify-center mb-3 ${gender === 'male' ? 'bg-[#3A1AEB]' : 'bg-slate-200'}`}>
@@ -208,7 +211,7 @@ export default function Register() {
                             <Text className={`font-bold font-inter-bold text-lg ${gender === 'male' ? 'text-[#3A1AEB]' : 'text-slate-500'}`}>{t('auth.male')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            onPress={() => setGender('female')}
+                            onPress={() => setGender(gender === 'female' ? null : 'female')}
                             className={`flex-1 p-6 rounded-3xl border-2 items-center justify-center ${gender === 'female' ? 'border-pink-500 bg-pink-500/5' : 'border-slate-100 bg-slate-50'}`}
                         >
                             <View className={`w-12 h-12 rounded-full items-center justify-center mb-3 ${gender === 'female' ? 'bg-pink-500' : 'bg-slate-200'}`}>
@@ -217,29 +220,54 @@ export default function Register() {
                             <Text className={`font-bold font-inter-bold text-lg ${gender === 'female' ? 'text-pink-600' : 'text-slate-500'}`}>{t('auth.female')}</Text>
                         </TouchableOpacity>
                     </View>
+                    {gender && (
+                        <TouchableOpacity
+                            onPress={() => setGender(null)}
+                            className="mt-2 self-end"
+                        >
+                            <Text className="text-red-500 text-sm font-inter-bold">Clear selection</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 <View>
-                    <Text className="text-slate-700 mb-3 font-bold font-inter-bold ml-1 text-sm">{t('auth.birthday')}</Text>
+                    <Text className="text-slate-700 mb-3 font-bold font-inter-bold ml-1 text-sm">{t('auth.birthday')} <Text className="text-slate-400 font-normal">(Optional)</Text></Text>
                     <TouchableOpacity
-                        onPress={() => setShowDatePicker(true)}
+                        onPress={() => {
+                            if (Platform.OS === 'android') {
+                                setShowDatePicker(true);
+                            } else {
+                                setShowDatePicker(!showDatePicker);
+                            }
+                        }}
                         className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 flex-row items-center justify-between"
                     >
-                        <Text className="text-slate-900 text-lg font-inter-bold">
-                            {birthday.toLocaleDateString()}
+                        <Text className={`text-lg font-inter-bold ${birthday ? 'text-slate-900' : 'text-slate-400'}`}>
+                            {birthday ? birthday.toLocaleDateString() : 'Select your birthday'}
                         </Text>
                         <MaterialCommunityIcons name="calendar-month" size={24} color="#64748b" />
                     </TouchableOpacity>
 
-                    {showDatePicker && (
+                    {(showDatePicker || Platform.OS === 'ios') && (
                         <DateTimePicker
                             testID="dateTimePicker"
-                            value={birthday}
+                            value={birthday || new Date()}
                             mode="date"
-                            display="default"
+                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                             onChange={onChangeDate}
                             maximumDate={new Date()}
                         />
+                    )}
+                    {birthday && (
+                        <TouchableOpacity
+                            onPress={() => {
+                                setBirthday(null);
+                                setShowDatePicker(false);
+                            }}
+                            className="mt-2 self-end"
+                        >
+                            <Text className="text-red-500 text-sm font-inter-bold">Clear</Text>
+                        </TouchableOpacity>
                     )}
                 </View>
             </View>

@@ -1,4 +1,4 @@
-import { Platform, View } from 'react-native';
+import { Platform, View, Dimensions } from 'react-native';
 import { Tabs } from "expo-router";
 import { NativeTabs, Icon, Label, VectorIcon } from 'expo-router/unstable-native-tabs';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
@@ -6,7 +6,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Header from "../../components/Header";
 import { useTranslation } from 'react-i18next';
 
-// iOS Implementation - Native Tabs
+// Check if device is iPad
+const isIPad = () => {
+  const { width, height } = Dimensions.get('window');
+  const aspectRatio = Math.max(width, height) / Math.min(width, height);
+  return Platform.OS === 'ios' && (aspectRatio < 1.6 || Math.min(width, height) >= 768);
+};
+
+// iOS Implementation - Native Tabs (for iPhone)
 function IOSTabBar() {
   const { t } = useTranslation();
   return (
@@ -36,6 +43,102 @@ function IOSTabBar() {
         <Icon sf={{ default: 'person', selected: 'person.fill' }} />
       </NativeTabs.Trigger>
     </NativeTabs>
+  );
+}
+
+// iOS/iPad Custom Tab Bar (similar to Android style, bottom positioned)
+function IOSCustomTabBar() {
+  const { bottom } = useSafeAreaInsets();
+  const { t } = useTranslation();
+
+  const tabBarStyle = {
+    position: 'absolute' as const,
+    bottom: Math.max(bottom, 20),
+    backgroundColor: '#ffffff',
+    borderRadius: 30,
+    borderTopWidth: 0,
+    height: 60,
+    elevation: 10,
+    shadowColor: '#3A1AEB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    marginLeft: 20,
+    marginRight: 20,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  };
+
+  const tabBarItemStyle = {
+    height: 60,
+    paddingVertical: 5,
+  };
+
+  const tabBarLabelStyle = {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    fontFamily: 'Inter_600SemiBold',
+    marginBottom: 4,
+  };
+
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        animation: 'fade',
+        tabBarActiveTintColor: '#3A1AEB',
+        tabBarInactiveTintColor: '#94a3b8',
+        tabBarStyle,
+        tabBarItemStyle,
+        tabBarLabelStyle,
+      }}
+    >
+      <Tabs.Screen
+        name="wardrobe"
+        options={{
+          title: t('tabs.wardrobe'),
+          tabBarIcon: ({ color, focused }) => (
+            <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-50' : ''}`}>
+              <MaterialCommunityIcons name={focused ? "wardrobe" : "wardrobe-outline"} size={24} color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="outfit"
+        options={{
+          title: t('tabs.outfit'),
+          tabBarIcon: ({ color, focused }) => (
+            <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-50' : ''}`}>
+              <MaterialIcons name="checkroom" size={24} color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: t('tabs.history'),
+          tabBarIcon: ({ color, focused }) => (
+            <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-50' : ''}`}>
+              <MaterialIcons name="history" size={24} color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          headerShown: false,
+          title: t('tabs.profile'),
+          tabBarIcon: ({ color, focused }) => (
+            <View className={`items-center justify-center w-10 h-10 rounded-full ${focused ? 'bg-slate-50' : ''}`}>
+              <MaterialIcons name={focused ? "person" : "person-outline"} size={24} color={color} />
+            </View>
+          ),
+        }}
+      />
+    </Tabs>
   );
 }
 
@@ -139,6 +242,10 @@ function AndroidTabBar() {
 export default function Layout() {
   if (Platform.OS === 'android') {
     return <AndroidTabBar />;
+  }
+  // Use custom bottom tab bar for iPad, native tabs for iPhone
+  if (isIPad()) {
+    return <IOSCustomTabBar />;
   }
   return <IOSTabBar />;
 }

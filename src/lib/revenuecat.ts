@@ -64,16 +64,64 @@ export const RevenueCatService = {
         }
     },
 
+    logIn: async (userId: string): Promise<CustomerInfo | null> => {
+        try {
+            await RevenueCatService.ensureInitialized();
+            const { customerInfo } = await Purchases.logIn(userId);
+            console.log('RevenueCat user logged in:', userId);
+            return customerInfo;
+        } catch (e) {
+            console.error('Error logging in user to RevenueCat:', e);
+            return null;
+        }
+    },
+
+    logOut: async (): Promise<CustomerInfo | null> => {
+        try {
+            await RevenueCatService.ensureInitialized();
+            const { customerInfo } = await Purchases.logOut();
+            console.log('RevenueCat user logged out');
+            return customerInfo;
+        } catch (e) {
+            console.error('Error logging out user from RevenueCat:', e);
+            return null;
+        }
+    },
+
     getOfferings: async (): Promise<PurchasesOffering | null> => {
         try {
             await RevenueCatService.ensureInitialized();
+            console.log('[RevenueCat] Fetching offerings...');
             const offerings = await Purchases.getOfferings();
+            
+            console.log('[RevenueCat] Offerings response:', {
+                current: offerings.current ? {
+                    identifier: offerings.current.identifier,
+                    serverDescription: offerings.current.serverDescription,
+                    availablePackages: offerings.current.availablePackages?.length || 0
+                } : null,
+                all: Object.keys(offerings.all || {}),
+                currentIdentifier: offerings.currentIdentifier
+            });
+
             if (offerings.current !== null) {
+                console.log('[RevenueCat] Current offering found:', offerings.current.identifier);
+                if (!offerings.current.availablePackages || offerings.current.availablePackages.length === 0) {
+                    console.warn('[RevenueCat] Current offering has no available packages!');
+                }
                 return offerings.current;
             }
+            
+            console.warn('[RevenueCat] No current offering found. Available offerings:', Object.keys(offerings.all || {}));
+            if (Object.keys(offerings.all || {}).length > 0) {
+                console.log('[RevenueCat] Using first available offering instead');
+                const firstOffering = Object.values(offerings.all || {})[0] as PurchasesOffering;
+                return firstOffering || null;
+            }
+            
             return null;
         } catch (e) {
-            console.error('Error getting offerings:', e);
+            console.error('[RevenueCat] Error getting offerings:', e);
             return null;
         }
     },

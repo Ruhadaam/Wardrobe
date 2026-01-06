@@ -9,21 +9,24 @@ import Toast from 'react-native-toast-message';
 import { useTranslation } from 'react-i18next';
 
 export default function AccountInfoPage() {
-    const { profile, user, updateProfile } = useAuth();
+    const { profile, user, updateProfile, deleteAccount } = useAuth();
     const router = useRouter();
     const { top } = useSafeAreaInsets();
     const { t } = useTranslation();
 
     const [name, setName] = useState(profile?.name || '');
     const [surname, setSurname] = useState(profile?.surname || '');
-    const [gender, setGender] = useState(profile?.gender || 'male');
+    const [gender, setGender] = useState<'male' | 'female' | null>(
+        profile?.gender === 'male' || profile?.gender === 'female' ? profile.gender : null
+    );
     const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         if (profile) {
             setName(profile.name);
             setSurname(profile.surname);
-            setGender(profile.gender);
+            setGender(profile.gender === 'male' || profile.gender === 'female' ? profile.gender : null);
         }
     }, [profile]);
 
@@ -52,6 +55,60 @@ export default function AccountInfoPage() {
         } else {
             Alert.alert(t('common.error'), t('account.updateError'));
         }
+    };
+
+    const handleDeleteAccount = () => {
+        Alert.alert(
+            t('account.deleteAccountTitle'),
+            t('account.deleteAccountMessage'),
+            [
+                {
+                    text: t('common.cancel'),
+                    style: 'cancel'
+                },
+                {
+                    text: t('account.deleteConfirm'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        // Double confirmation
+                        Alert.alert(
+                            t('account.finalWarning'),
+                            t('account.finalWarningMessage'),
+                            [
+                                {
+                                    text: t('common.cancel'),
+                                    style: 'cancel'
+                                },
+                                {
+                                    text: t('account.deleteConfirm'),
+                                    style: 'destructive',
+                                    onPress: async () => {
+                                        setIsDeleting(true);
+                                        const { success, error } = await deleteAccount();
+                                        setIsDeleting(false);
+
+                                        if (success) {
+                                            Toast.show({
+                                                type: 'success',
+                                                text1: t('account.accountDeleted'),
+                                                position: 'top'
+                                            });
+                                            // Navigation will happen automatically via auth state change
+                                            router.replace('/(auth)/login');
+                                        } else {
+                                            Alert.alert(
+                                                t('common.error'),
+                                                error?.message || t('account.deleteError')
+                                            );
+                                        }
+                                    }
+                                }
+                            ]
+                        );
+                    }
+                }
+            ]
+        );
     };
 
     return (
@@ -154,27 +211,35 @@ export default function AccountInfoPage() {
 
                         <View className="flex-row gap-4">
                             <TouchableOpacity
-                                onPress={() => setGender('male')}
+                                onPress={() => setGender(gender === 'male' ? null : 'male')}
                                 className={`flex-1 flex-row items-center justify-center py-4 rounded-2xl border ${gender === 'male' ? 'bg-[#3A1AEB] border-[#3A1AEB]' : 'bg-slate-50 border-slate-100'}`}
                             >
                                 <MaterialCommunityIcons name="human-male" size={20} color={gender === 'male' ? 'white' : '#64748b'} />
                                 <Text className={`ml-2 font-inter-bold font-bold ${gender === 'male' ? 'text-white' : 'text-slate-600'}`}>{t('account.male')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                onPress={() => setGender('female')}
+                                onPress={() => setGender(gender === 'female' ? null : 'female')}
                                 className={`flex-1 flex-row items-center justify-center py-4 rounded-2xl border ${gender === 'female' ? 'bg-[#3A1AEB] border-[#3A1AEB]' : 'bg-slate-50 border-slate-100'}`}
                             >
                                 <MaterialCommunityIcons name="human-female" size={20} color={gender === 'female' ? 'white' : '#64748b'} />
                                 <Text className={`ml-2 font-inter-bold font-bold ${gender === 'female' ? 'text-white' : 'text-slate-600'}`}>{t('account.female')}</Text>
                             </TouchableOpacity>
                         </View>
+                        {gender && (
+                            <TouchableOpacity
+                                onPress={() => setGender(null)}
+                                className="mt-2 self-end"
+                            >
+                                <Text className="text-red-500 text-sm font-inter-bold">Clear selection</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
 
                 <TouchableOpacity
                     onPress={handleSave}
                     disabled={isSaving}
-                    className={`mt-4 bg-[#3A1AEB] py-5 rounded-[24px] items-center justify-center shadow-lg shadow-[#3A1AEB]/30 mb-10 ${isSaving ? 'opacity-70' : ''}`}
+                    className={`mt-4 bg-[#3A1AEB] py-5 rounded-[24px] items-center justify-center shadow-lg shadow-[#3A1AEB]/30 mb-6 ${isSaving ? 'opacity-70' : ''}`}
                 >
                     {isSaving ? (
                         <ActivityIndicator color="white" />
@@ -184,6 +249,37 @@ export default function AccountInfoPage() {
                         </Text>
                     )}
                 </TouchableOpacity>
+
+                {/* Danger Zone - Delete Account */}
+                <View className="mb-10">
+                    <View className="bg-red-50 rounded-[24px] border border-red-100 p-6">
+                        <View className="flex-row items-center mb-3">
+                            <MaterialCommunityIcons name="alert-circle-outline" size={24} color="#ef4444" />
+                            <Text className="text-red-600 font-black font-inter-black text-sm uppercase tracking-widest ml-2">
+                                {t('account.dangerZone')}
+                            </Text>
+                        </View>
+                        <Text className="text-red-700 font-inter-medium text-sm mb-4 leading-5">
+                            {t('account.deleteAccountDesc')}
+                        </Text>
+                        <TouchableOpacity
+                            onPress={handleDeleteAccount}
+                            disabled={isDeleting}
+                            className={`bg-red-500 py-4 rounded-2xl items-center justify-center ${isDeleting ? 'opacity-70' : ''}`}
+                        >
+                            {isDeleting ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <View className="flex-row items-center">
+                                    <MaterialCommunityIcons name="delete-outline" size={20} color="white" />
+                                    <Text className="text-white font-black font-inter-black text-sm uppercase tracking-widest ml-2">
+                                        {t('account.deleteAccount')}
+                                    </Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
             </ScrollView>
         </Animated.View>
     );

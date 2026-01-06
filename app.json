@@ -16,12 +16,13 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.ruhadam.Ornatus",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSPhotoLibraryUsageDescription": "Wardrobe needs access to your photo library to import clothes into your closet."
+        "NSPhotoLibraryUsageDescription": "Wardrobe needs access to your photo library to import clothes into your closet.",
+        "NSCameraUsageDescription": "To take photos of your clothes and add them to your wardrobe."
       }
     },
     "android": {
@@ -47,7 +48,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "The app accesses your photos to let you pick wardrobe items."
+          "photosPermission": "The app accesses your photos to let you pick wardrobe items.",
+          "cameraPermission": "To take photos of your clothes and add them to your wardrobe."
         }
       ],
       "expo-font",

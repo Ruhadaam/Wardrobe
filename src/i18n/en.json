@@ -362,7 +362,17 @@
         "fillBoth": "Please fill in both first and last name.",
         "profileUpdated": "Profile Updated",
         "profileUpdatedDesc": "Your changes have been saved successfully.",
-        "updateError": "Could not update profile. Please try again."
+        "updateError": "Could not update profile. Please try again.",
+        "dangerZone": "Danger Zone",
+        "deleteAccount": "Delete Account",
+        "deleteAccountTitle": "Delete Account",
+        "deleteAccountMessage": "Are you sure you want to delete your account? This will permanently delete all your data including your wardrobe items, outfits, and profile information. This action cannot be undone.",
+        "deleteAccountDesc": "Permanently delete your account and all associated data. This action cannot be undone.",
+        "deleteConfirm": "Delete",
+        "finalWarning": "Final Warning",
+        "finalWarningMessage": "This is your last chance to cancel. Your account and all data will be permanently deleted. Are you absolutely sure?",
+        "accountDeleted": "Account deleted successfully",
+        "deleteError": "Could not delete account. Please try again."
     },
     "settings": {
         "title": "App Settings",

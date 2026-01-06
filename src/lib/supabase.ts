@@ -19,8 +19,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 export type UserProfile = {
   name: string;
   surname: string;
-  gender: 'male' | 'female';
-  birthday: Date;
+  gender?: 'male' | 'female' | null;
+  birthday?: Date | null;
 };
 
 export const auth = {
@@ -42,8 +42,8 @@ export const auth = {
         data: {
           name: profile.name,
           surname: profile.surname,
-          gender: profile.gender,
-          birthday: profile.birthday.toISOString().split('T')[0],
+          gender: profile.gender || null,
+          birthday: profile.birthday ? profile.birthday.toISOString().split('T')[0] : null,
         }
       }
     });
@@ -62,8 +62,8 @@ export const auth = {
             email: cleanEmail,
             name: profile.name,
             surname: profile.surname,
-            gender: profile.gender,
-            birthday: profile.birthday.toISOString().split('T')[0], // YYYY-MM-DD
+            gender: profile.gender || null,
+            birthday: profile.birthday ? profile.birthday.toISOString().split('T')[0] : null, // YYYY-MM-DD
             photo_url: '',
           },
         ]);

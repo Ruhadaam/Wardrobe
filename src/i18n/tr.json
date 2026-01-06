@@ -362,7 +362,17 @@
         "fillBoth": "Lütfen hem ad hem de soyad alanlarını doldurun.",
         "profileUpdated": "Profil Güncellendi",
         "profileUpdatedDesc": "Değişikliklerin başarıyla kaydedildi.",
-        "updateError": "Profil güncellenemedi. Lütfen tekrar dene."
+        "updateError": "Profil güncellenemedi. Lütfen tekrar dene.",
+        "dangerZone": "Tehlikeli Bölge",
+        "deleteAccount": "Hesabı Sil",
+        "deleteAccountTitle": "Hesabı Sil",
+        "deleteAccountMessage": "Hesabınızı silmek istediğinizden emin misiniz? Bu işlem gardırop öğeleri, kombinler ve profil bilgileri dahil tüm verilerinizi kalıcı olarak silecektir. Bu işlem geri alınamaz.",
+        "deleteAccountDesc": "Hesabınızı ve tüm ilişkili verileri kalıcı olarak silin. Bu işlem geri alınamaz.",
+        "deleteConfirm": "Sil",
+        "finalWarning": "Son Uyarı",
+        "finalWarningMessage": "Bu iptal etme şansınızın son hali. Hesabınız ve tüm verileriniz kalıcı olarak silinecek. Kesinlikle emin misiniz?",
+        "accountDeleted": "Hesap başarıyla silindi",
+        "deleteError": "Hesap silinemedi. Lütfen tekrar deneyin."
     },
     "settings": {
         "title": "Uygulama Ayarları",

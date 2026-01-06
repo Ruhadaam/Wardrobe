@@ -281,5 +281,67 @@ export const wardrobeService = {
         }
 
         return count || 0;
+    },
+
+    // Robust wipe for all user data (Cloud Storage & Supabase DB)
+    wipeAllUserData: async (userId: string) => {
+        try {
+            console.log(`[WardrobeService] Starting full wipe for user: ${userId}`);
+
+            // 1. Delete all user's storage files (uploads/{userId}/*)
+            try {
+                // List files in batches if necessary (though 1000 is a lot)
+                const { data: files, error: listError } = await supabase.storage
+                    .from('uploads')
+                    .list(userId, { limit: 1000 });
+
+                if (listError) throw listError;
+
+                if (files && files.length > 0) {
+                    const filePaths = files.map(file => `${userId}/${file.name}`);
+                    const { error: removeError } = await supabase.storage
+                        .from('uploads')
+                        .remove(filePaths);
+
+                    if (removeError) {
+                        console.error('[WardrobeService] Error deleting storage files:', removeError);
+                    } else {
+                        console.log(`[WardrobeService] Deleted ${filePaths.length} files from storage`);
+                    }
+                }
+            } catch (storageErr) {
+                console.error('[WardrobeService] Storage wipe exception:', storageErr);
+            }
+
+            // 2. Delete Outfits
+            const { error: outfitsError } = await supabase
+                .from('outfits')
+                .delete()
+                .eq('user_id', userId);
+
+            if (outfitsError) console.error('[WardrobeService] Error deleting outfits from cloud:', outfitsError);
+
+            // 3. Delete Clothes
+            const { error: clothesError } = await supabase
+                .from('clothes')
+                .delete()
+                .eq('user_id', userId);
+
+            if (clothesError) console.error('[WardrobeService] Error deleting clothes from cloud:', clothesError);
+
+            // 4. Delete Profile (Users table)
+            const { error: profileError } = await supabase
+                .from('users')
+                .delete()
+                .eq('id', userId);
+
+            if (profileError) console.error('[WardrobeService] Error deleting profile from cloud:', profileError);
+
+            console.log(`[WardrobeService] Cloud wipe completed for user: ${userId}`);
+            return { success: true };
+        } catch (error) {
+            console.error('[WardrobeService] Exception during cloud wipe:', error);
+            return { success: false, error };
+        }
     }
 };

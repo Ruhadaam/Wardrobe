@@ -93,7 +93,7 @@ export const RevenueCatService = {
             await RevenueCatService.ensureInitialized();
             console.log('[RevenueCat] Fetching offerings...');
             const offerings = await Purchases.getOfferings();
-            
+
             console.log('[RevenueCat] Offerings response:', {
                 current: offerings.current ? {
                     identifier: offerings.current.identifier,
@@ -111,14 +111,14 @@ export const RevenueCatService = {
                 }
                 return offerings.current;
             }
-            
+
             console.warn('[RevenueCat] No current offering found. Available offerings:', Object.keys(offerings.all || {}));
             if (Object.keys(offerings.all || {}).length > 0) {
                 console.log('[RevenueCat] Using first available offering instead');
                 const firstOffering = Object.values(offerings.all || {})[0] as PurchasesOffering;
                 return firstOffering || null;
             }
-            
+
             return null;
         } catch (e) {
             console.error('[RevenueCat] Error getting offerings:', e);

@@ -275,5 +275,24 @@ export const databaseService = {
         } catch (error) {
             console.error('Error syncing outfits:', error);
         }
+    },
+
+    // Wipe all local data for a user
+    wipeUserData: async (userId: string) => {
+        try {
+            if (!userId) return;
+            const db = await getDb();
+
+            // Delete from clothes
+            await db.runAsync('DELETE FROM clothes WHERE user_id = ?', [String(userId)]);
+
+            // Delete from outfits
+            await db.runAsync('DELETE FROM outfits WHERE user_id = ?', [String(userId)]);
+
+            console.log(`[Database] All local data wiped for user: ${userId}`);
+        } catch (error) {
+            console.error('Error wiping local user data:', error);
+            throw error;
+        }
     }
 };

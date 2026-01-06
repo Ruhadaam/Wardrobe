@@ -21,6 +21,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "../providers/AuthProvider";
 import { WardrobeProvider, useWardrobe } from "../providers/WardrobeProvider";
+import { supabase } from "../lib/supabase";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -69,13 +70,24 @@ function InitialLayout() {
   useEffect(() => {
     if (loading) return;
 
+    // Listen for password recovery event
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        console.log('[Layout] Password recovery event, navigating to reset-password');
+        router.push('/(auth)/reset-password');
+      }
+    });
+
     const inAuthGroup = segments[0] === '(auth)';
+    const isResetPassword = segments[1] === 'reset-password';
 
     if (!session && !inAuthGroup) {
       router.replace('/(auth)/login');
-    } else if (session && inAuthGroup) {
+    } else if (session && inAuthGroup && !isResetPassword) {
       router.replace('/(tabs)/wardrobe');
     }
+
+    return () => subscription.unsubscribe();
   }, [session, loading, segments]);
 
 

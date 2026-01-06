@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import * as Linking from 'expo-linking';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
@@ -19,6 +20,8 @@ type AuthContextType = {
     signOut: () => Promise<void>;
     updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: any }>;
     deleteAccount: () => Promise<{ success: boolean; error?: any }>;
+    resetPassword: (email: string) => Promise<{ success: boolean; error?: any }>;
+    updatePassword: (password: string) => Promise<{ success: boolean; error?: any }>;
     isPremium: boolean;
     refreshPremiumStatus: () => Promise<void>;
 };
@@ -31,6 +34,8 @@ const AuthContext = createContext<AuthContextType>({
     signOut: async () => { },
     updateProfile: async () => ({ success: false }),
     deleteAccount: async () => ({ success: false }),
+    resetPassword: async () => ({ success: false }),
+    updatePassword: async () => ({ success: false }),
     isPremium: false,
     refreshPremiumStatus: async () => { },
 });
@@ -47,6 +52,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         // Initial premium check
         refreshPremiumStatus();
+
+        // Handle deep links for authentication (reset password, etc.)
+        const handleDeepLink = (url: string) => {
+            const fragment = url.split('#')[1];
+            if (fragment) {
+                const params = new URLSearchParams(fragment);
+                const access_token = params.get('access_token');
+                const refresh_token = params.get('refresh_token');
+
+                if (access_token && refresh_token) {
+                    supabase.auth.setSession({
+                        access_token,
+                        refresh_token,
+                    });
+                }
+            }
+        };
+
+        // Check for initial URL
+        Linking.getInitialURL().then((url) => {
+            if (url) handleDeepLink(url);
+        });
+
+        // Listen for incoming URLs
+        const linkingSubscription = Linking.addEventListener('url', (event) => {
+            handleDeepLink(event.url);
+        });
 
         // Check active sessions and sets the user
         supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -67,8 +99,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         });
 
+        const handlePasswordRecovery = async () => {
+            // We'll set a flag or just let the layout handle navigation
+            // Expo Router normally handles the URL if the scheme is right
+            console.log('[AuthProvider] Password recovery event detected');
+        };
+
         // Listen for changes on auth state (session)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                await handlePasswordRecovery();
+            }
+
             setSession(session);
             setUser(session?.user ?? null);
             if (session?.user) {
@@ -96,7 +138,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+            linkingSubscription.remove();
+        };
     }, []);
 
     const fetchProfile = async (userId: string) => {
@@ -242,6 +287,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const resetPassword = async (email: string) => {
+        try {
+            const { createURL } = await import('expo-linking');
+            const redirectTo = createURL('reset-password');
+            console.log('[AuthProvider] Reset password redirect URL:', redirectTo);
+
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: redirectTo,
+            });
+            if (error) throw error;
+            return { success: true };
+        } catch (e) {
+            console.error('Error in resetPassword:', e);
+            return { success: false, error: e };
+        }
+    };
+
+    const updatePassword = async (password: string) => {
+        try {
+            const { error } = await supabase.auth.updateUser({ password });
+            if (error) throw error;
+            return { success: true };
+        } catch (e) {
+            console.error('Error in updatePassword:', e);
+            return { success: false, error: e };
+        }
+    };
+
     const value = {
         session,
         user,
@@ -251,6 +324,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         updateProfile,
         deleteAccount,
+        resetPassword,
+        updatePassword,
         refreshPremiumStatus
     };
 

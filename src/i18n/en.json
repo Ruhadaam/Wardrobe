@@ -46,7 +46,19 @@
         "creating": "Creating Outfit...",
         "fillAllFields": "Please fill in all fields",
         "accountCreated": "Account created successfully!",
-        "signInRequired": "Please sign in to add items."
+        "signInRequired": "Please sign in to add items.",
+        "forgotPasswordTitle": "Forgot Password",
+        "forgotPasswordDesc": "Enter your registered email address to reset your password. We will send you a link.",
+        "sendResetLink": "Send Reset Link",
+        "sendingLink": "Sending...",
+        "resetLinkSent": "Reset link sent! Please check your email.",
+        "resetPasswordTitle": "New Password",
+        "resetPasswordDesc": "Please enter your new password.",
+        "updatePassword": "Update Password",
+        "updatingPassword": "Updating...",
+        "passwordUpdated": "Your password has been updated successfully!",
+        "confirmPassword": "Confirm Password",
+        "passwordsDoNotMatch": "Passwords do not match"
     },
     "wardrobe": {
         "title": "Wardrobe",

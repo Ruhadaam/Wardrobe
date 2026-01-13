@@ -6,7 +6,7 @@ import {
     ScrollView,
     ActivityIndicator,
     Alert,
-
+    Linking,
     StatusBar,
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeInUp, FadeInRight } from 'react-native-reanimated';
@@ -52,14 +52,17 @@ const PackageItem = ({ pack, isSelected, onSelect, savings, purchasing }: {
 
     const currencySymbol = getCurrencySymbol(currencyCode);
 
-    const displayPrice = isAnnual && price > 0
+    // Aylık hesaplanmış fiyat (yıllık için ikincil gösterim)
+    const monthlyPrice = isAnnual && price > 0
         ? (price / 12).toFixed(2)
-        : pack.product?.priceString || 'N/A';
+        : null;
 
-    // Yıllık için manuel formatlama, aylık için priceString kullan
-    const finalPriceString = (isAnnual && price > 0)
-        ? `${currencySymbol}${displayPrice}`
-        : displayPrice;
+    const monthlyPriceString = monthlyPrice
+        ? `${currencySymbol}${monthlyPrice}`
+        : null;
+
+    // Ana fiyat gösterimi - toplam faturalanacak tutar
+    const mainPriceString = pack.product?.priceString || 'N/A';
 
     const handlePress = () => {
         try {
@@ -117,22 +120,24 @@ const PackageItem = ({ pack, isSelected, onSelect, savings, purchasing }: {
                                 <Text className={`font-inter-bold text-lg ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>
                                     {isAnnual ? t('paywall.annual') : t('paywall.monthly')}
                                 </Text>
-                                {isAnnual && (
-                                    <Text className="text-indigo-600/80 font-inter-medium text-xs mt-0.5">
-                                        {pack.product?.priceString}/{t('common.year')}
-                                    </Text>
-                                )}
                             </View>
                         </View>
 
-                        {/* Fiyat Gösterimi */}
+                        {/* Fiyat Gösterimi - Apple 3.1.2 uyumlu: Toplam fiyat EN BELİRGİN */}
                         <View className="items-end">
+                            {/* ANA FİYAT: Toplam faturalanacak tutar - en büyük ve belirgin */}
                             <Text className="text-slate-900 font-inter-black text-xl">
-                                {finalPriceString}
+                                {mainPriceString}
                             </Text>
                             <Text className="text-slate-400 font-inter-medium text-xs">
-                                /{t('common.month')}
+                                /{isAnnual ? t('common.year') : t('common.month')}
                             </Text>
+                            {/* İKİNCİL: Aylık hesaplanmış fiyat - daha küçük ve soluk */}
+                            {isAnnual && monthlyPriceString && (
+                                <Text className="text-slate-400 font-inter-regular text-[10px] mt-1">
+                                    ({monthlyPriceString}/{t('common.month')})
+                                </Text>
+                            )}
                         </View>
                     </View>
                 </View>
@@ -186,7 +191,7 @@ export default function PaywallScreen() {
                 identifier: offerings.identifier,
                 packageCount: offerings.availablePackages?.length || 0
             } : 'null');
-            
+
             if (offerings && offerings.availablePackages && offerings.availablePackages.length > 0) {
                 const sortedPackages = [...offerings.availablePackages].sort((a, b) => {
                     if (a.packageType === 'ANNUAL' && b.packageType !== 'ANNUAL') return -1;
@@ -437,14 +442,22 @@ export default function PaywallScreen() {
                     )}
                 </Animated.View>
 
-                {/* Legal Links */}
+                {/* Legal Links - Apple 3.1.2 uyumlu: Terms of Use (EULA) linki zorunlu */}
                 <Animated.View
                     entering={FadeIn.duration(400).delay(1200)}
                     className="flex-row justify-center mt-4 mb-8 space-x-4"
                 >
-                    <TouchableOpacity><Text className="text-slate-400 text-xs">{t('paywall.terms')}</Text></TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}
+                    >
+                        <Text className="text-indigo-500 text-xs underline">{t('paywall.terms')}</Text>
+                    </TouchableOpacity>
                     <Text className="text-slate-300 text-xs">•</Text>
-                    <TouchableOpacity><Text className="text-slate-400 text-xs">{t('paywall.privacy')}</Text></TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={() => Linking.openURL('https://wardrobe-app.com/privacy')}
+                    >
+                        <Text className="text-indigo-500 text-xs underline">{t('paywall.privacy')}</Text>
+                    </TouchableOpacity>
                 </Animated.View>
             </ScrollView>
 

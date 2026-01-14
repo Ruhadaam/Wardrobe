@@ -454,7 +454,7 @@ export default function PaywallScreen() {
                     </TouchableOpacity>
                     <Text className="text-slate-300 text-xs">•</Text>
                     <TouchableOpacity
-                        onPress={() => Linking.openURL('https://wardrobe-app.com/privacy')}
+                        onPress={() => Linking.openURL('https://ruhadaam.github.io/ornatus-privacy-policy')}
                     >
                         <Text className="text-indigo-500 text-xs underline">{t('paywall.privacy')}</Text>
                     </TouchableOpacity>

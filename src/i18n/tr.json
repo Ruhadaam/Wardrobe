@@ -351,6 +351,8 @@
         "freeDesc": "Sınırlı yapay zeka önerileri ve gardırop analizi.",
         "upgrade": "Pro'ya Yükselt",
         "activeSub": "Aktif Abonelik",
+        "manage": "Aboneliği Yönet",
+        "manageError": "Abonelik yönetim sayfası açılamadı. Lütfen aboneliğinizi App Store veya Play Store üzerinden yönetin.",
         "accountSettings": "Hesap Ayarları",
         "menu": {
             "account": "Hesap Bilgileri",

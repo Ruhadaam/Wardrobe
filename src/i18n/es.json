@@ -327,6 +327,8 @@
         "freeDesc": "Sugerencias IA y análisis de armario limitados.",
         "upgrade": "Mejorar a Pro",
         "activeSub": "Suscripción Activa",
+        "manage": "Gestionar Suscripción",
+        "manageError": "No se pudo abrir la página de gestión de suscripciones. Por favor, gestione su suscripción desde App Store o Play Store.",
         "accountSettings": "Ajustes de Cuenta",
         "menu": {
             "account": "Info de Cuenta",

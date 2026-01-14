@@ -338,6 +338,8 @@
         "freeDesc": "Limited AI suggestions and wardrobe analysis.",
         "upgrade": "Upgrade to Pro",
         "activeSub": "Active Subscription",
+        "manage": "Gérer l'abonnement",
+        "manageError": "Impossible d'ouvrir la page de gestion des abonnements. Veuillez gérer votre abonnement depuis l'App Store ou le Play Store.",
         "accountSettings": "Account Settings",
         "menu": {
             "account": "Account Info",

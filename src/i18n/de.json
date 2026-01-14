@@ -338,6 +338,8 @@
         "freeDesc": "Begrenzte KI-Vorschläge und Schrank-Analyse.",
         "upgrade": "Upgrade auf Pro",
         "activeSub": "Aktives Abo",
+        "manage": "Abonnement verwalten",
+        "manageError": "Abonnement-Verwaltungsseite konnte nicht geöffnet werden. Bitte verwalten Sie Ihr Abonnement über den App Store oder Play Store.",
         "accountSettings": "Kontoeinstellungen",
         "menu": {
             "account": "Kontoinfo",

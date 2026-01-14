@@ -338,6 +338,8 @@
         "freeDesc": "制限付きのAI提案とワードローブ分析。",
         "upgrade": "Proにアップグレード",
         "activeSub": "有効なサブスクリプション",
+        "manage": "サブスクリプションを管理",
+        "manageError": "サブスクリプション管理ページを開けませんでした。App StoreまたはPlay Storeからサブスクリプションを管理してください。",
         "accountSettings": "アカウント設定",
         "menu": {
             "account": "アカウント情報",

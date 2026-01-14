@@ -110,8 +110,7 @@ export const RevenueCatService = {
                     serverDescription: offerings.current.serverDescription,
                     availablePackages: offerings.current.availablePackages?.length || 0
                 } : null,
-                all: Object.keys(offerings.all || {}),
-                currentIdentifier: offerings.currentIdentifier
+                all: Object.keys(offerings.all || {})
             });
 
             if (offerings.current !== null && offerings.current.availablePackages.length > 0) {

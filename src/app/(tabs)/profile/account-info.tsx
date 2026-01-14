@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 export default function AccountInfoPage() {
     const { profile, user, updateProfile, deleteAccount } = useAuth();
     const router = useRouter();
-    const { top } = useSafeAreaInsets();
+    const { top, bottom } = useSafeAreaInsets();
     const { t } = useTranslation();
 
     const [name, setName] = useState(profile?.name || '');
@@ -128,7 +128,11 @@ export default function AccountInfoPage() {
                 <View className="w-12" />
             </View>
 
-            <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
+            <ScrollView
+                className="flex-1 px-6 pt-6"
+                contentContainerStyle={{ paddingBottom: bottom + 120 }}
+                showsVerticalScrollIndicator={false}
+            >
                 {/* Profile Avatar Card */}
                 <View className="items-center mb-10">
                     <View className="w-32 h-32 bg-slate-50 rounded-full items-center justify-center border-8 border-slate-50 shadow-sm relative">

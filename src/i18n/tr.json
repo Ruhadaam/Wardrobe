@@ -46,7 +46,19 @@
         "creating": "Oluşturuluyor...",
         "fillAllFields": "Lütfen tüm alanları doldur",
         "accountCreated": "Hesap başarıyla oluşturuldu!",
-        "signInRequired": "Öğe eklemek için lütfen giriş yapın."
+        "signInRequired": "Öğe eklemek için lütfen giriş yapın.",
+        "forgotPasswordTitle": "Şifremi Unuttum",
+        "forgotPasswordDesc": "Şifreni sıfırlamak için kayıtlı e-posta adresini gir. Sana bir bağlantı göndereceğiz.",
+        "sendResetLink": "Sıfırlama Bağlantısı Gönder",
+        "sendingLink": "Gönderiliyor...",
+        "resetLinkSent": "Sıfırlama bağlantısı gönderildi! Lütfen e-postanı kontrol et.",
+        "resetPasswordTitle": "Yeni Şifre",
+        "resetPasswordDesc": "Lütfen yeni şifreni gir.",
+        "updatePassword": "Şifreyi Güncelle",
+        "updatingPassword": "Güncelleniyor...",
+        "passwordUpdated": "Şifren başarıyla güncellendi!",
+        "confirmPassword": "Şifreyi Onayla",
+        "passwordsDoNotMatch": "Şifreler eşleşmiyor"
     },
     "wardrobe": {
         "title": "Gardırop",

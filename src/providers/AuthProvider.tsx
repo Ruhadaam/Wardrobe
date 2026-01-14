@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import * as Linking from 'expo-linking';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
@@ -19,6 +20,8 @@ type AuthContextType = {
     signOut: () => Promise<void>;
     updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: any }>;
     deleteAccount: () => Promise<{ success: boolean; error?: any }>;
+    resetPassword: (email: string) => Promise<{ success: boolean; error?: any }>;
+    updatePassword: (password: string) => Promise<{ success: boolean; error?: any }>;
     isPremium: boolean;
     refreshPremiumStatus: () => Promise<void>;
 };
@@ -31,6 +34,8 @@ const AuthContext = createContext<AuthContextType>({
     signOut: async () => { },
     updateProfile: async () => ({ success: false }),
     deleteAccount: async () => ({ success: false }),
+    resetPassword: async () => ({ success: false }),
+    updatePassword: async () => ({ success: false }),
     isPremium: false,
     refreshPremiumStatus: async () => { },
 });
@@ -47,6 +52,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         // Initial premium check
         refreshPremiumStatus();
+
+        // Handle deep links for authentication (reset password, etc.)
+        const handleDeepLink = (url: string) => {
+            const fragment = url.split('#')[1];
+            if (fragment) {
+                const params = new URLSearchParams(fragment);
+                const access_token = params.get('access_token');
+                const refresh_token = params.get('refresh_token');
+
+                if (access_token && refresh_token) {
+                    supabase.auth.setSession({
+                        access_token,
+                        refresh_token,
+                    });
+                }
+            }
+        };
+
+        // Check for initial URL
+        Linking.getInitialURL().then((url) => {
+            if (url) handleDeepLink(url);
+        });
+
+        // Listen for incoming URLs
+        const linkingSubscription = Linking.addEventListener('url', (event) => {
+            handleDeepLink(event.url);
+        });
 
         // Check active sessions and sets the user
         supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -67,8 +99,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         });
 
+        const handlePasswordRecovery = async () => {
+            // We'll set a flag or just let the layout handle navigation
+            // Expo Router normally handles the URL if the scheme is right
+            console.log('[AuthProvider] Password recovery event detected');
+        };
+
         // Listen for changes on auth state (session)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                await handlePasswordRecovery();
+            }
+
             setSession(session);
             setUser(session?.user ?? null);
             if (session?.user) {
@@ -96,7 +138,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+            linkingSubscription.remove();
+        };
     }, []);
 
     const fetchProfile = async (userId: string) => {
@@ -195,110 +240,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const deleteAccount = async () => {
         if (!user) return { success: false, error: 'No user session' };
-        
+
         try {
             const userId = user.id;
 
-            // 1. Delete all user's clothes from Supabase (this will also clean up storage references)
-            const { error: clothesError } = await supabase
-                .from('clothes')
-                .delete()
-                .eq('user_id', userId);
-
-            if (clothesError) {
-                console.error('Error deleting clothes:', clothesError);
-                // Continue anyway - clothes deletion failure shouldn't block account deletion
-            }
-
-            // 2. Delete all user's outfits from Supabase
-            const { error: outfitsError } = await supabase
-                .from('outfits')
-                .delete()
-                .eq('user_id', userId);
-
-            if (outfitsError) {
-                console.error('Error deleting outfits:', outfitsError);
-                // Continue anyway
-            }
-
-            // 3. Delete all user's storage files (uploads/{userId}/*)
+            // 1. Call Supabase Edge Function for full wipe (Storage, DB, Auth)
             try {
-                // List all files in user's folder
-                const { data: files, error: listError } = await supabase.storage
-                    .from('uploads')
-                    .list(userId, {
-                        limit: 1000,
-                        offset: 0,
-                        sortBy: { column: 'name', order: 'asc' }
-                    });
+                const { data, error } = await supabase.functions.invoke('delete-account');
 
-                if (!listError && files && files.length > 0) {
-                    // Delete all files
-                    const filePaths = files.map(file => `${userId}/${file.name}`);
-                    const { error: deleteStorageError } = await supabase.storage
-                        .from('uploads')
-                        .remove(filePaths);
-
-                    if (deleteStorageError) {
-                        console.error('Error deleting storage files:', deleteStorageError);
-                        // Try to delete the folder itself if supported
-                        try {
-                            await supabase.storage
-                                .from('uploads')
-                                .remove([userId]);
-                        } catch (e) {
-                            console.warn('Could not delete user folder:', e);
-                        }
-                    } else {
-                        console.log(`Deleted ${filePaths.length} files from storage`);
-                    }
+                if (error) {
+                    console.error('[AuthProvider] Edge Function error:', error);
+                    // Fallback: Try to wipe locally if edge function failed (though it might have partially succeeded)
+                } else {
+                    console.log('[AuthProvider] Full account deletion via Edge Function triggered');
                 }
-            } catch (storageError) {
-                console.error('Error cleaning up storage:', storageError);
-                // Continue anyway - storage cleanup failure shouldn't block account deletion
+            } catch (edgeError) {
+                console.error('[AuthProvider] Edge Function exception:', edgeError);
             }
 
-            // 4. Delete user profile from users table
-            const { error: profileError } = await supabase
-                .from('users')
-                .delete()
-                .eq('id', userId);
-
-            if (profileError) {
-                console.error('Error deleting user profile:', profileError);
-                // Continue anyway
-            }
-
-            // 5. Clear local database (clothes and outfits)
+            // 2. Wipe Local Database (Still needed since it's client-side)
             try {
                 const { databaseService } = await import('../services/databaseService');
-                // Get all local items and outfits for this user
-                const localItems = await databaseService.getItems(userId);
-                const localOutfits = await databaseService.getOutfits(userId);
-                
-                // Delete all local items
-                for (const item of localItems) {
-                    await databaseService.deleteItem(item.id);
-                }
-                
-                // Delete all local outfits
-                for (const outfit of localOutfits) {
-                    await databaseService.deleteOutfit(outfit.id);
-                }
-            } catch (localDbError) {
-                console.error('Error cleaning local database:', localDbError);
-                // Continue anyway
+                await databaseService.wipeUserData(userId);
+            } catch (localWipeError) {
+                console.error('[AuthProvider] Local wipe failed:', localWipeError);
             }
 
-            // 6. Logout from RevenueCat
+            // 3. Logout from RevenueCat
             try {
                 const { RevenueCatService } = await import('../lib/revenuecat');
                 await RevenueCatService.logOut();
             } catch (e) {
-                console.error('Error logging out from RevenueCat:', e);
+                console.error('[AuthProvider] Error logging out from RevenueCat:', e);
             }
 
-            // 7. Sign out from Supabase Auth
+            // 4. Sign out from Supabase Auth
             await supabase.auth.signOut();
             setProfile(null);
             setUser(null);
@@ -306,7 +282,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             return { success: true };
         } catch (e) {
-            console.error('Error deleting account:', e);
+            console.error('[AuthProvider] Error in deleteAccount:', e);
+            return { success: false, error: e };
+        }
+    };
+
+    const resetPassword = async (email: string) => {
+        try {
+            const { createURL } = await import('expo-linking');
+            const redirectTo = createURL('reset-password');
+            console.log('[AuthProvider] Reset password redirect URL:', redirectTo);
+
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: redirectTo,
+            });
+            if (error) throw error;
+            return { success: true };
+        } catch (e) {
+            console.error('Error in resetPassword:', e);
+            return { success: false, error: e };
+        }
+    };
+
+    const updatePassword = async (password: string) => {
+        try {
+            const { error } = await supabase.auth.updateUser({ password });
+            if (error) throw error;
+            return { success: true };
+        } catch (e) {
+            console.error('Error in updatePassword:', e);
             return { success: false, error: e };
         }
     };
@@ -320,6 +324,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         updateProfile,
         deleteAccount,
+        resetPassword,
+        updatePassword,
         refreshPremiumStatus
     };
 

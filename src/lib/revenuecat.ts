@@ -103,22 +103,40 @@ export const RevenueCatService = {
             await RevenueCatService.ensureInitialized();
             
             const offerings = await Purchases.getOfferings();
-            
+
+            console.log('[RevenueCat] Offerings response:', {
+                current: offerings.current ? {
+                    identifier: offerings.current.identifier,
+                    serverDescription: offerings.current.serverDescription,
+                    availablePackages: offerings.current.availablePackages?.length || 0
+                } : null,
+                all: Object.keys(offerings.all || {}),
+                currentIdentifier: offerings.currentIdentifier
+            });
+
             if (offerings.current !== null && offerings.current.availablePackages.length > 0) {
+                console.log('[RevenueCat] Current offering found:', offerings.current.identifier);
                 return offerings.current;
             }
 
             // Eğer current boşsa ama 'all' içinde paket varsa ilkini dön
-            const allOfferings = Object.values(offerings.all);
+            if (offerings.current !== null && (!offerings.current.availablePackages || offerings.current.availablePackages.length === 0)) {
+                console.warn('[RevenueCat] Current offering has no available packages!');
+            }
+
+            console.warn('[RevenueCat] No current offering found. Available offerings:', Object.keys(offerings.all || {}));
+            const allOfferings = Object.values(offerings.all || {});
             if (allOfferings.length > 0 && allOfferings[0].availablePackages.length > 0) {
-                return allOfferings[0];
+                console.log('[RevenueCat] Using first available offering instead');
+                return allOfferings[0] as PurchasesOffering;
             }
 
             if (retryCount < MAX_RETRIES) {
+                console.log(`[RevenueCat] Retrying getOfferings (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 return RevenueCatService.getOfferings(retryCount + 1);
             }
-            
+
             return null;
         } catch (e: any) {
             console.error('[RevenueCat] getOfferings Error:', e);

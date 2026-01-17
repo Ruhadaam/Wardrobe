@@ -338,6 +338,8 @@
         "freeDesc": "제한된 AI 제안 및 옷장 분석.",
         "upgrade": "Pro로 업그레이드",
         "activeSub": "활성 구독",
+        "manage": "구독 관리",
+        "manageError": "구독 관리 페이지를 열 수 없습니다. App Store 또는 Play Store에서 구독을 관리해주세요.",
         "accountSettings": "계정 설정",
         "menu": {
             "account": "계정 정보",

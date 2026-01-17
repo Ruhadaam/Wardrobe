@@ -338,6 +338,8 @@
         "freeDesc": "有限的 AI 建议和衣橱分析。",
         "upgrade": "升级到高级版",
         "activeSub": "有效订阅",
+        "manage": "管理订阅",
+        "manageError": "无法打开订阅管理页面。请从 App Store 或 Play Store 管理您的订阅。",
         "accountSettings": "账户设置",
         "menu": {
             "account": "账户信息",

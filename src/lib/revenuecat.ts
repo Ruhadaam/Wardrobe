@@ -6,7 +6,6 @@ import Purchases, {
 } from 'react-native-purchases';
 import { Platform } from 'react-native';
 
-// TODO: Replace with your actual RevenueCat API keys
 const API_KEYS = {
     ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || '',
     android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY || '',
@@ -22,24 +21,27 @@ export const RevenueCatService = {
             try {
                 const apiKey = Platform.OS === 'ios' ? API_KEYS.ios : API_KEYS.android;
 
+                // KRİTİK DÜZELTME: API Key yoksa durma, hata fırlat ki Singleton hatasına düşme
                 if (!apiKey) {
-                    console.warn('RevenueCat API key is missing for platform:', Platform.OS);
-                    return;
+                    const errorMsg = `RevenueCat API key is MISSING for platform: ${Platform.OS}. Check your EAS Secrets or .env file.`;
+                    console.error(errorMsg);
+                    throw new Error(errorMsg); 
                 }
 
-                // Explicitly set log handler to avoid "customLogHandler is not a function" crash
-                if (__DEV__) {
-                    Purchases.setLogHandler((level, message) => {
-                        console.log(`[RevenueCat][${level}] ${message}`);
-                    });
-                    await Purchases.setLogLevel(LOG_LEVEL.DEBUG);
-                }
+                Purchases.setLogHandler((level, message) => {
+                    // TestFlight'ta logları görebilmek için console.log kullanmaya devam ediyoruz
+                    console.log(`[RevenueCat][${level}] ${message}`);
+                });
+
+                // TestFlight'ta DEBUG loglarını görmek istiyorsan bunu geçici olarak DEBUG yapabilirsin
+                await Purchases.setLogLevel(LOG_LEVEL.DEBUG);
 
                 await Purchases.configure({ apiKey });
-                console.log('RevenueCat initialized successfully');
+                console.log('RevenueCat initialized successfully with API Key:', apiKey.substring(0, 8) + "...");
             } catch (e) {
                 console.error('Error initializing RevenueCat:', e);
-                initializationPromise = null; // Reset on failure so it can be retried
+                initializationPromise = null; 
+                throw e; // Hatayı yukarı ilet
             }
         })();
 
@@ -48,9 +50,15 @@ export const RevenueCatService = {
 
     ensureInitialized: async () => {
         if (!initializationPromise) {
-            await RevenueCatService.init();
+            return await RevenueCatService.init();
         }
-        return initializationPromise;
+        try {
+            await initializationPromise;
+        } catch (e) {
+            // Eğer önceki deneme başarısız olduysa tekrar dene
+            initializationPromise = null;
+            return await RevenueCatService.init();
+        }
     },
 
     getPurchaserInfo: async (): Promise<CustomerInfo | null> => {
@@ -79,7 +87,7 @@ export const RevenueCatService = {
     logOut: async (): Promise<CustomerInfo | null> => {
         try {
             await RevenueCatService.ensureInitialized();
-            const { customerInfo } = await Purchases.logOut();
+            const customerInfo = await Purchases.logOut();
             console.log('RevenueCat user logged out');
             return customerInfo;
         } catch (e) {
@@ -88,10 +96,12 @@ export const RevenueCatService = {
         }
     },
 
-    getOfferings: async (): Promise<PurchasesOffering | null> => {
+    getOfferings: async (retryCount = 0): Promise<PurchasesOffering | null> => {
+        const MAX_RETRIES = 2;
         try {
+            // Burada init'in bitmesini kesin olarak bekliyoruz
             await RevenueCatService.ensureInitialized();
-            console.log('[RevenueCat] Fetching offerings...');
+            
             const offerings = await Purchases.getOfferings();
 
             console.log('[RevenueCat] Offerings response:', {
@@ -100,28 +110,35 @@ export const RevenueCatService = {
                     serverDescription: offerings.current.serverDescription,
                     availablePackages: offerings.current.availablePackages?.length || 0
                 } : null,
-                all: Object.keys(offerings.all || {}),
-                currentIdentifier: offerings.currentIdentifier
+                all: Object.keys(offerings.all || {})
             });
 
-            if (offerings.current !== null) {
+            if (offerings.current !== null && offerings.current.availablePackages.length > 0) {
                 console.log('[RevenueCat] Current offering found:', offerings.current.identifier);
-                if (!offerings.current.availablePackages || offerings.current.availablePackages.length === 0) {
-                    console.warn('[RevenueCat] Current offering has no available packages!');
-                }
                 return offerings.current;
             }
 
+            // Eğer current boşsa ama 'all' içinde paket varsa ilkini dön
+            if (offerings.current !== null && (!offerings.current.availablePackages || offerings.current.availablePackages.length === 0)) {
+                console.warn('[RevenueCat] Current offering has no available packages!');
+            }
+
             console.warn('[RevenueCat] No current offering found. Available offerings:', Object.keys(offerings.all || {}));
-            if (Object.keys(offerings.all || {}).length > 0) {
+            const allOfferings = Object.values(offerings.all || {});
+            if (allOfferings.length > 0 && allOfferings[0].availablePackages.length > 0) {
                 console.log('[RevenueCat] Using first available offering instead');
-                const firstOffering = Object.values(offerings.all || {})[0] as PurchasesOffering;
-                return firstOffering || null;
+                return allOfferings[0] as PurchasesOffering;
+            }
+
+            if (retryCount < MAX_RETRIES) {
+                console.log(`[RevenueCat] Retrying getOfferings (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                return RevenueCatService.getOfferings(retryCount + 1);
             }
 
             return null;
-        } catch (e) {
-            console.error('[RevenueCat] Error getting offerings:', e);
+        } catch (e: any) {
+            console.error('[RevenueCat] getOfferings Error:', e);
             return null;
         }
     },
@@ -152,17 +169,11 @@ export const RevenueCatService = {
 
     isPro: async (customerInfo?: CustomerInfo): Promise<boolean> => {
         try {
-            // Check if 'Wardrobe Pro' entitlement is active
             const info = customerInfo || await RevenueCatService.getPurchaserInfo();
+            // "Wardrobe Pro" isminin RC Dashboard ile birebir aynı olduğundan emin ol!
             return info?.entitlements.active['Wardrobe Pro'] !== undefined;
         } catch (e) {
-            console.error('Error in isPro:', e);
             return false;
         }
     },
-
-    /*isPro: async (): Promise<boolean> => {
-return true; // Herkesi Pro yapar
-},*/
-
 };

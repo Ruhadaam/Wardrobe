@@ -1,33 +1,64 @@
-import { View, Text, TouchableOpacity, Platform, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, Platform, ScrollView, Linking, Alert } from "react-native";
 import Animated, { FadeInRight } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../../providers/AuthProvider";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { RevenueCatService } from "../../../lib/revenuecat";
+import { useRouter, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from 'react-i18next';
 
 
 export default function ProfilePage() {
-  const { signOut, profile, user } = useAuth();
+  const { signOut, profile, user, isPremium, refreshPremiumStatus } = useAuth();
   const { t } = useTranslation();
   const router = useRouter();
-  const [isPro, setIsPro] = useState(false);
   const [loadingPro, setLoadingPro] = useState(true);
 
   useEffect(() => {
-    checkSubscription();
+    // Initial load: use AuthProvider as source of truth
+    setLoadingPro(false);
   }, []);
 
-  const checkSubscription = async () => {
+  // Refresh premium whenever user visits this screen (fixes header/profile mismatch)
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      (async () => {
+        try {
+          setLoadingPro(true);
+          await refreshPremiumStatus();
+        } catch (e) {
+          console.error("Error refreshing premium status in profile:", e);
+        } finally {
+          if (isActive) setLoadingPro(false);
+        }
+      })();
+      return () => {
+        isActive = false;
+      };
+    }, [refreshPremiumStatus])
+  );
+
+  const handleManageSubscription = async () => {
     try {
-      const proStatus = await RevenueCatService.isPro();
-      setIsPro(proStatus);
+      // iOS ve Android'de abonelikler platform üzerinden yönetilir ve iptal edilir
+      // iOS: App Store subscriptions sayfası
+      // Android: Play Store subscriptions sayfası
+      const url =
+        Platform.OS === 'ios'
+          ? 'https://apps.apple.com/account/subscriptions'
+          : 'https://play.google.com/store/account/subscriptions';
+
+      const canOpen = await Linking.canOpenURL(url);
+      if (!canOpen) {
+        Alert.alert(t('common.error'), t('profile.manageError'));
+        return;
+      }
+
+      await Linking.openURL(url);
     } catch (e) {
-      console.error("Error checking subscription in profile:", e);
-    } finally {
-      setLoadingPro(false);
+      console.error('Error opening subscription management:', e);
+      Alert.alert(t('common.error'), t('profile.manageError'));
     }
   };
 
@@ -87,19 +118,19 @@ export default function ProfilePage() {
             <View className="flex-1 mr-4">
               <View className="flex-row items-center mb-3">
                 <View className="bg-[#3A1AEB]/10 p-2 rounded-xl mr-2">
-                  <MaterialCommunityIcons name={isPro ? "crown-outline" : "diamond-outline"} size={20} color="#3A1AEB" />
+                  <MaterialCommunityIcons name={isPremium ? "crown-outline" : "diamond-outline"} size={20} color="#3A1AEB" />
                 </View>
                 <Text className="text-slate-900 font-black font-inter-black text-lg">
-                  {loadingPro ? t('profile.checking') : isPro ? t('profile.pro') : t('profile.free')}
+                  {loadingPro ? t('profile.checking') : isPremium ? t('profile.pro') : t('profile.free')}
                 </Text>
               </View>
               <Text className="text-slate-500 font-inter-medium text-sm leading-5 mb-6">
-                {isPro
+                {isPremium
                   ? t('profile.proDesc')
                   : t('profile.freeDesc')}
               </Text>
 
-              {!isPro && !loadingPro && (
+              {!isPremium && !loadingPro && (
                 <TouchableOpacity
                   className="bg-[#3A1AEB] py-4 rounded-2xl flex-row items-center justify-center shadow-lg shadow-[#3A1AEB]/30"
                   onPress={() => router.push('/paywall')}
@@ -110,13 +141,24 @@ export default function ProfilePage() {
                   </Text>
                 </TouchableOpacity>
               )}
-              {isPro && (
-                <View className="bg-emerald-50 py-3 rounded-2xl flex-row items-center justify-center border border-emerald-100">
-                  <MaterialCommunityIcons name="check-decagram" size={18} color="#10B981" />
-                  <Text className="text-emerald-600 font-black font-inter-black text-xs ml-2 uppercase tracking-widest">
-                    {t('profile.activeSub')}
-                  </Text>
-                </View>
+              {isPremium && !loadingPro && (
+                <>
+                  <TouchableOpacity
+                    className="bg-[#3A1AEB] py-4 rounded-2xl flex-row items-center justify-center shadow-lg shadow-[#3A1AEB]/30 mb-3"
+                    onPress={handleManageSubscription}
+                  >
+                    <MaterialCommunityIcons name="credit-card-outline" size={20} color="white" />
+                    <Text className="text-white font-black font-inter-black text-sm ml-2 uppercase tracking-widest">
+                      {t('profile.manage')}
+                    </Text>
+                  </TouchableOpacity>
+                  <View className="bg-emerald-50 py-3 rounded-2xl flex-row items-center justify-center border border-emerald-100">
+                    <MaterialCommunityIcons name="check-decagram" size={18} color="#10B981" />
+                    <Text className="text-emerald-600 font-black font-inter-black text-xs ml-2 uppercase tracking-widest">
+                      {t('profile.activeSub')}
+                    </Text>
+                  </View>
+                </>
               )}
             </View>
 

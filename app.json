@@ -2,7 +2,7 @@
   "expo": {
     "name": "Ornatus",
     "slug": "ornatus",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "ornatus",
@@ -18,7 +18,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.ruhadam.Ornatus",
-      "buildNumber": "2",
+      "buildNumber": "6",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "Wardrobe needs access to your photo library to import clothes into your closet.",

@@ -351,6 +351,8 @@
         "freeDesc": "Limited AI suggestions and wardrobe analysis.",
         "upgrade": "Upgrade to Pro",
         "activeSub": "Active Subscription",
+        "manage": "Manage Subscription",
+        "manageError": "Could not open subscription management page. Please manage your subscription from the App Store or Play Store.",
         "accountSettings": "Account Settings",
         "menu": {
             "account": "Account Info",

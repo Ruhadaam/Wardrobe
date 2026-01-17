@@ -6,6 +6,7 @@ export default function AuthLayout() {
             headerShown: false,
             animation: 'slide_from_right',
         }}>
+            <Stack.Screen name="onboarding" />
             <Stack.Screen name="login" />
             <Stack.Screen name="register" />
             <Stack.Screen name="reset-password" />

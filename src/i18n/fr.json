@@ -431,5 +431,15 @@
         "select": "Select Language",
         "note": "Note",
         "noteDesc": "Changing the language will update the user interface. Some AI-generated content might still appear in the language it was created."
+    },
+    "onboarding": {
+        "slide1Title": "Digitalisez votre Garde-robe",
+        "slide1Desc": "Prenez une photo de vos vêtements et laissez l'IA faire le reste. Ornatus reconnaît et catégorise vos articles automatiquement.",
+        "slide2Title": "Styliste IA à vos côtés",
+        "slide2Desc": "Donnez vie à votre garde-robe avec l'IA. Ornatus analyse vos vêtements et crée des tenues parfaites selon la météo et votre style.",
+        "slide3Title": "Découvrez votre Style",
+        "slide3Desc": "Terminez le dilemme quotidien 'que porter' avec votre garde-robe intelligente. Prêt à créer votre propre style?",
+        "getStarted": "C'est parti!",
+        "skip": "Passer"
     }
 }

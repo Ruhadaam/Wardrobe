@@ -454,5 +454,15 @@
         "select": "Dil Seçin",
         "note": "Not",
         "noteDesc": "Dili değiştirmek kullanıcı arayüzünü güncelleyecektir. Yapay zeka tarafından oluşturulan bazı içerikler hala oluşturulduğu dilde görünebilir."
+    },
+    "onboarding": {
+        "slide1Title": "Gardırobunu Dijitalleştir",
+        "slide1Desc": "Kıyafetlerinin fotoğrafını çek, gerisini yapay zekaya bırak. Ornatus, parçaları otomatik olarak tanır ve kategorize eder.",
+        "slide2Title": "AI Stilist Yanında",
+        "slide2Desc": "Gardırobunu yapay zeka ile canlandır. Ornatus, sahip olduğun parçaları analiz ederek hava durumuna ve tarzına en uygun kombinleri senin için saniyeler içinde hazırlar.",
+        "slide3Title": "Stilini Keşfet",
+        "slide3Desc": "Yapay zeka destekli akıllı gardırobunla her gün ne giyeceğim derdine son ver. Kendi stilini yaratmaya hazır mısın?",
+        "getStarted": "Hadi Başlayalım",
+        "skip": "Atla"
     }
 }

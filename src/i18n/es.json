@@ -420,5 +420,15 @@
         "select": "Seleccionar Idioma",
         "note": "Nota",
         "noteDesc": "Cambiar el idioma actualizará la interfaz. Algunos contenidos generados por IA podrían aparecer en el idioma en que fueron creados."
+    },
+    "onboarding": {
+        "slide1Title": "Digitaliza tu Armario",
+        "slide1Desc": "Toma una foto de tu ropa y deja que la IA haga el resto. Ornatus reconoce y categoriza tus prendas automáticamente.",
+        "slide2Title": "Estilista IA a tu Lado",
+        "slide2Desc": "Da vida a tu armario con IA. Ornatus analiza tu ropa y crea outfits perfectos para el clima y tu estilo en segundos.",
+        "slide3Title": "Descubre tu Estilo",
+        "slide3Desc": "Termina con el dilema diario de '¿qué me pongo?' con tu armario inteligente. ¿Listo para crear tu propio estilo?",
+        "getStarted": "¡Vamos!",
+        "skip": "Omitir"
     }
 }

@@ -431,5 +431,15 @@
         "select": "选择语言",
         "note": "注意",
         "noteDesc": "更改语言将更新用户界面。某些 AI 生成的内容可能仍显示为其创建时的语言。"
+    },
+    "onboarding": {
+        "slide1Title": "数字化你的衣橱",
+        "slide1Desc": "给衣服拍张照，剩下的交给AI。Ornatus自动识别并分类你的衣物。",
+        "slide2Title": "AI造型师陪伴你",
+        "slide2Desc": "用AI让衣橱焕发生机。Ornatus分析你的衣服，根据天气和风格秒速创建完美搭配。",
+        "slide3Title": "发现你的风格",
+        "slide3Desc": "用AI智能衣橱告别每天「穿什么」的烦恼。准备好创造属于自己的风格了吗？",
+        "getStarted": "开始吧！",
+        "skip": "跳过"
     }
 }

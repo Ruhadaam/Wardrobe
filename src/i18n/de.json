@@ -431,5 +431,15 @@
         "select": "Sprache wählen",
         "note": "Hinweis",
         "noteDesc": "Sprachänderung aktualisiert die Benutzeroberfläche. KI-generierte Inhalte bleiben möglicherweise in der Erstellsprache."
+    },
+    "onboarding": {
+        "slide1Title": "Digitalisiere deinen Kleiderschrank",
+        "slide1Desc": "Fotografiere deine Kleidung und überlasse den Rest der KI. Ornatus erkennt und kategorisiert deine Artikel automatisch.",
+        "slide2Title": "KI-Stylist an deiner Seite",
+        "slide2Desc": "Erwecke deinen Kleiderschrank mit KI zum Leben. Ornatus analysiert deine Kleidung und erstellt perfekte Outfits für Wetter und deinen Stil.",
+        "slide3Title": "Entdecke deinen Stil",
+        "slide3Desc": "Beende den täglichen 'Was ziehe ich an'-Struggle mit deinem KI-gestützten Kleiderschrank. Bereit, deinen eigenen Stil zu kreieren?",
+        "getStarted": "Los geht's",
+        "skip": "Überspringen"
     }
 }

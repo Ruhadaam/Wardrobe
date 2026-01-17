@@ -454,5 +454,15 @@
         "select": "Select Language",
         "note": "Note",
         "noteDesc": "Changing the language will update the user interface. Some AI-generated content might still appear in the language it was created."
+    },
+    "onboarding": {
+        "slide1Title": "Digitize Your Wardrobe",
+        "slide1Desc": "Take a photo of your clothes and let AI do the rest. Ornatus automatically recognizes and categorizes your items.",
+        "slide2Title": "AI Stylist by Your Side",
+        "slide2Desc": "Bring your wardrobe to life with AI. Ornatus analyzes your clothes and creates perfect outfits for weather and your style in seconds.",
+        "slide3Title": "Discover Your Style",
+        "slide3Desc": "End the daily 'what to wear' struggle with your AI-powered smart wardrobe. Ready to create your own style?",
+        "getStarted": "Let's Get Started",
+        "skip": "Skip"
     }
 }

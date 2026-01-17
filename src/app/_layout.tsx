@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Platform, View } from "react-native";
 import Toast from "react-native-toast-message";
 import mobileAds from 'react-native-google-mobile-ads';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
   useFonts,
@@ -18,10 +19,11 @@ import {
   Inter_900Black,
 } from "@expo-google-fonts/inter";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "../providers/AuthProvider";
 import { WardrobeProvider, useWardrobe } from "../providers/WardrobeProvider";
 import { supabase } from "../lib/supabase";
+import { ONBOARDING_COMPLETE_KEY } from "./(auth)/onboarding";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -30,6 +32,7 @@ function InitialLayout() {
   const { initialLoadComplete } = useWardrobe();
   const segments = useSegments();
   const router = useRouter();
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
 
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
@@ -38,6 +41,20 @@ function InitialLayout() {
     Inter_700Bold,
     Inter_900Black,
   });
+
+  // Check onboarding status
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const value = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
+        setHasCompletedOnboarding(value === 'true');
+      } catch (e) {
+        console.error('Error checking onboarding status:', e);
+        setHasCompletedOnboarding(false);
+      }
+    };
+    checkOnboarding();
+  }, []);
 
   useEffect(() => {
     // Wait for auth loading AND wardrobe initial load to complete
@@ -68,7 +85,7 @@ function InitialLayout() {
   }, [fontsLoaded, fontError, loading, initialLoadComplete]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || hasCompletedOnboarding === null) return;
 
     // Listen for password recovery event
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -80,20 +97,26 @@ function InitialLayout() {
 
     const inAuthGroup = segments[0] === '(auth)';
     const isResetPassword = segments[1] === 'reset-password';
+    const isOnboarding = segments[1] === 'onboarding';
+    const isRegister = segments[1] === 'register';
+    const isLogin = segments[1] === 'login';
 
-    if (!session && !inAuthGroup) {
+    // If onboarding not completed and not already on onboarding/register/login screen
+    if (!hasCompletedOnboarding && !isOnboarding && !isRegister && !isLogin) {
+      router.replace('/(auth)/onboarding');
+    } else if (!session && !inAuthGroup && hasCompletedOnboarding) {
       router.replace('/(auth)/login');
     } else if (session && inAuthGroup && !isResetPassword) {
       router.replace('/(tabs)/wardrobe');
     }
 
     return () => subscription.unsubscribe();
-  }, [session, loading, segments]);
+  }, [session, loading, segments, hasCompletedOnboarding]);
 
 
 
-  // Wait for fonts, auth loading, AND wardrobe initial load
-  if ((Platform.OS === 'android' && !fontsLoaded && !fontError) || loading || !initialLoadComplete) {
+  // Wait for fonts, auth loading, onboarding check, AND wardrobe initial load
+  if ((Platform.OS === 'android' && !fontsLoaded && !fontError) || loading || !initialLoadComplete || hasCompletedOnboarding === null) {
     return null;
   }
 
